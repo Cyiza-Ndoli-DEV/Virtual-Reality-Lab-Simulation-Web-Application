@@ -36,7 +36,7 @@ Make sure you have the following installed before proceeding:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/CYIIZA.........../vrsps-web.git
+git clone https://github.com/https://github.com/Cyiza-Ndoli-DEV/Virtual-Reality-Lab-Simulation-Web-Application.git
 cd vrsps-web
 ```
 
