@@ -1,6 +1,6 @@
 # VRSPS Web Portal
 
-![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Prisma](https://img.shields.io/badge/Prisma-5-2D3748) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791) ![Tailwind](https://img.shields.io/badge/Tailwind-3-38BDF8) ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
+![Next.js](https://img.shields.io/badge/Next.js-14-black) ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue) ![Prisma](https://img.shields.io/badge/Prisma-5-2D3748) ![MySQL](https://img.shields.io/badge/MySQL-8-4479A1) ![Tailwind](https://img.shields.io/badge/Tailwind-3-38BDF8) ![Status](https://img.shields.io/badge/Status-In%20Development-orange)
 
 > Web management portal for the **Virtual Reality Science Practical System (VRSPS)** — a Meta Quest 3s VR application designed to provide immersive science practical learning for students in resource-limited schools across Uganda.
 
@@ -25,9 +25,10 @@ Make sure you have the following installed before proceeding:
 |---|---|---|
 | Node.js | v20+ | [nodejs.org](https://nodejs.org) |
 | npm | v9+ | Comes with Node.js |
-| PostgreSQL | v14+ | [postgresql.org](https://www.postgresql.org/download/) |
-| PGAdmin | v7+ | [pgadmin.org](https://www.pgadmin.org/download/) |
+| MySQL | v8+ | [dev.mysql.com/downloads](https://dev.mysql.com/downloads/mysql/) |
 | Git | Latest | [git-scm.com](https://git-scm.com) |
+
+Optional: [MySQL Workbench](https://dev.mysql.com/downloads/workbench/) or any MySQL client to create the database and run ad hoc queries.
 
 ---
 
@@ -48,25 +49,41 @@ npm install
 
 ### 3. Set up the database
 
-Open **PGAdmin** and create a new database:
+Create an empty database (utf8mb4 recommended). From a MySQL client:
 
-- Right-click **Databases** → **Create** → **Database**
-- Name it: `vrsps_db`
-- Click **Save**
+```sql
+CREATE DATABASE vrsps_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Or use your preferred GUI (Workbench, DBeaver, etc.) and create a schema named `vrsps_db`.
 
 ### 4. Configure environment variables
 
-Create a `.env` file in the root of the project:
+Copy the example file and edit values:
+
+```bash
+cp .env.example .env
+```
+
+On Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+`.env` should include:
 
 ```env
-DATABASE_URL="postgresql://postgres:YOURPASSWORD@localhost:5432/vrsps_db"
+DATABASE_URL="mysql://root:YOURPASSWORD@localhost:3306/vrsps_db"
 NEXTAUTH_SECRET="your-secret-key-here"
 NEXTAUTH_URL="http://localhost:3000"
 UNITY_API_KEY="your-unity-api-key-here"
 ```
 
 Replace:
-- `YOURPASSWORD` — your PostgreSQL password set during installation
+
+- `root` / `YOURPASSWORD` — your MySQL user and password (use a dedicated app user in production)
+- `vrsps_db` — database name if you chose a different one
 - `NEXTAUTH_SECRET` — any random string (used to encrypt sessions)
 - `UNITY_API_KEY` — any random string (shared with the Unity VR app)
 
@@ -75,7 +92,13 @@ Replace:
 This creates all the required tables in your database:
 
 ```bash
-npx prisma migrate dev --name init
+npx prisma migrate dev
+```
+
+For a new project, this applies the existing migrations in `prisma/migrations`. To record a new schema change after editing `schema.prisma`:
+
+```bash
+npx prisma migrate dev --name describe_your_change
 ```
 
 ### 6. Seed the database
@@ -112,6 +135,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 vrsps-web/
 ├── prisma/
 │   ├── schema.prisma        # Database models
+│   ├── migrations/          # Applied SQL migrations (MySQL)
 │   └── seed.ts              # Default data seeder
 ├── src/
 │   ├── app/
@@ -133,7 +157,8 @@ vrsps-web/
 │   ├── types/
 │   │   └── next-auth.d.ts   # Session type extensions
 │   └── middleware.ts        # Route protection by role
-├── .env                     # Environment variables (not committed)
+├── .env                     # Environment variables (not committed; copy from .env.example)
+├── .env.example             # Example env (MySQL URL and app secrets)
 ├── next.config.ts           # Next.js configuration
 ├── tailwind.config.ts       # Tailwind CSS configuration
 └── tsconfig.json            # TypeScript configuration
@@ -194,7 +219,7 @@ Content-Type: application/json
 | shadcn/ui | UI components |
 | NextAuth.js v5 | Authentication & session management |
 | Prisma 5 | Database ORM |
-| PostgreSQL | Database |
+| MySQL 8 | Database |
 | bcryptjs | Password hashing |
 | Lucide React | Icons |
 
@@ -214,7 +239,7 @@ Content-Type: application/json
 
 | Variable | Description | Example |
 |---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:pass@localhost:5432/vrsps_db` |
+| `DATABASE_URL` | MySQL connection string (Prisma) | `mysql://user:pass@localhost:3306/vrsps_db` |
 | `NEXTAUTH_SECRET` | Secret for encrypting sessions | Any random string |
 | `NEXTAUTH_URL` | Base URL of the app | `http://localhost:3000` |
 | `UNITY_API_KEY` | API key shared with Unity app | Any random string |

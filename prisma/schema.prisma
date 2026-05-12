@@ -9,7 +9,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -38,7 +38,7 @@ model User {
 model Experiment {
   id          String   @id @default(cuid())
   title       String
-  description String
+  description String   @db.Text
   steps       Json
   createdAt   DateTime @default(now())
   sessions    ExperimentSession[]
@@ -64,7 +64,7 @@ model WrongStepLog {
   id          String   @id @default(cuid())
   sessionId   String
   stepNumber  Int
-  description String
+  description String   @db.Text
   loggedAt    DateTime @default(now())
   session     ExperimentSession @relation(fields: [sessionId], references: [id])
 }
@@ -95,9 +95,9 @@ model Report {
   id              String    @id @default(cuid())
   studentId       String
   experimentId    String
-  content         String
+  content         String    @db.Text
   submittedAt     DateTime  @default(now())
-  teacherFeedback String?
+  teacherFeedback String?   @db.Text
   feedbackAt      DateTime?
   student         User       @relation(fields: [studentId], references: [id])
   experiment      Experiment @relation(fields: [experimentId], references: [id])
