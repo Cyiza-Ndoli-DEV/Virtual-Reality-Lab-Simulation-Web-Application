@@ -1,0 +1,36 @@
+import { auth } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+
+export default auth((req) => {
+  const { pathname } = req.nextUrl
+  const role = req.auth?.user?.role
+
+  // If not logged in and trying to access protected routes
+  if (!req.auth && pathname !== '/login') {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  // Role-based route protection
+  if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  if (pathname.startsWith('/teacher') && role !== 'TEACHER') {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  if (pathname.startsWith('/student') && role !== 'STUDENT') {
+    return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  return NextResponse.next()
+})
+
+export const config = {
+  matcher: [
+    '/admin/:path*',
+    '/teacher/:path*',
+    '/student/:path*',
+    '/((?!api|_next/static|_next/image|favicon.ico|login).*)',
+  ],
+}

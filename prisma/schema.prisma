@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  role        Role     @default(STUDENT)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+  createdBy   User?    @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdUsers User[]  @relation("CreatedUsers")
+  sessions     ExperimentSession[]
+  quizAttempts QuizAttempt[]
+  reports      Report[]
+}
+
+model Experiment {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  steps       Json
+  createdAt   DateTime @default(now())
+  sessions    ExperimentSession[]
+  quizzes     Quiz[]
+  reports     Report[]
+}
+
+model ExperimentSession {
+  id           String    @id @default(cuid())
+  studentId    String
+  experimentId String
+  timeTaken    Int       @default(0)
+  wrongSteps   Int       @default(0)
+  passed       Boolean   @default(false)
+  startedAt    DateTime  @default(now())
+  completedAt  DateTime?
+  student      User       @relation(fields: [studentId], references: [id])
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+  wrongStepLogs WrongStepLog[]
+}
+
+model WrongStepLog {
+  id          String   @id @default(cuid())
+  sessionId   String
+  stepNumber  Int
+  description String
+  loggedAt    DateTime @default(now())
+  session     ExperimentSession @relation(fields: [sessionId], references: [id])
+}
+
+model Quiz {
+  id           String   @id @default(cuid())
+  title        String
+  experimentId String
+  questions    Json
+  createdAt    DateTime @default(now())
+  experiment   Experiment    @relation(fields: [experimentId], references: [id])
+  attempts     QuizAttempt[]
+}
+
+model QuizAttempt {
+  id             String   @id @default(cuid())
+  studentId      String
+  quizId         String
+  score          Int
+  totalQuestions Int
+  answers        Json
+  attemptedAt    DateTime @default(now())
+  student        User @relation(fields: [studentId], references: [id])
+  quiz           Quiz @relation(fields: [quizId], references: [id])
+}
+
+model Report {
+  id              String    @id @default(cuid())
+  studentId       String
+  experimentId    String
+  content         String
+  submittedAt     DateTime  @default(now())
+  teacherFeedback String?
+  feedbackAt      DateTime?
+  student         User       @relation(fields: [studentId], references: [id])
+  experiment      Experiment @relation(fields: [experimentId], references: [id])
+}

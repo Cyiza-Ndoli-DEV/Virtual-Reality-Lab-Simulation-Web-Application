@@ -1,0 +1,231 @@
+'use client'
+
+import Image from 'next/image'
+import { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { Eye, EyeOff, FlaskConical, GraduationCap, Atom } from 'lucide-react'
+
+export default function LoginPage() {
+  const router = useRouter()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError('')
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        setError('Invalid email or password')
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/auth/session')
+      const session = await response.json()
+      const role = session?.user?.role
+
+      if (role === 'ADMIN') router.push('/admin/dashboard')
+      else if (role === 'TEACHER') router.push('/teacher/dashboard')
+      else if (role === 'STUDENT') router.push('/student/dashboard')
+      else router.push('/login')
+
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-cyan-50">
+
+      <div className="grid min-h-screen lg:grid-cols-2">
+
+        {/* LEFT SIDE */}
+        <div className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-600 to-cyan-500 p-12">
+
+          {/* Decorative circles */}
+          <div className="absolute -top-20 -right-20 h-72 w-72 rounded-full bg-white/10" />
+          <div className="absolute bottom-0 left-0 h-56 w-56 rounded-full bg-white/10" />
+
+          <div className="relative z-10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm text-white backdrop-blur-sm">
+              <Atom className="h-4 w-4" />
+              Virtual Reality Science Practical System
+            </div>
+
+            <h1 className="mt-8 max-w-xl text-5xl font-bold leading-tight text-white">
+              Experience Science Practicals in Virtual Reality
+            </h1>
+
+            <p className="mt-6 max-w-lg text-lg leading-8 text-blue-100">
+              Conduct immersive chemistry, physics, and biology experiments
+              through an interactive VR learning environment designed for
+              modern education.
+            </p>
+
+            <div className="mt-10 space-y-5">
+
+              <div className="flex items-start gap-4 rounded-2xl bg-white/15 p-5 backdrop-blur-md">
+                <div className="rounded-xl bg-white/20 p-3">
+                  <FlaskConical className="h-5 w-5 text-white" />
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-white">
+                    Interactive Experiments
+                  </h3>
+
+                  <p className="mt-1 text-sm text-blue-100">
+                    Perform laboratory practicals safely in a fully virtual environment.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 rounded-2xl bg-white/15 p-5 backdrop-blur-md">
+                <div className="rounded-xl bg-white/20 p-3">
+                  <GraduationCap className="h-5 w-5 text-white" />
+                </div>
+
+                <div>
+                  <h3 className="font-semibold text-white">
+                    Smart Learning Analytics
+                  </h3>
+
+                  <p className="mt-1 text-sm text-blue-100">
+                    Track student progress, performance, and practical completion.
+                  </p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          {/* IMAGE */}
+          <div className="relative z-10 mt-10 flex justify-center">
+            <Image
+              src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop"
+              alt="VR Science Lab"
+              width={500}
+              height={350}
+              className="rounded-3xl border border-white/20 object-cover shadow-2xl"
+            />
+          </div>
+        </div>
+
+        {/* RIGHT SIDE */}
+        <div className="flex items-center justify-center px-6 py-12">
+
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-2xl">
+
+            {/* Mobile image */}
+            <div className="mb-6 overflow-hidden rounded-2xl lg:hidden">
+              <Image
+                src="https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=1200&auto=format&fit=crop"
+                alt="VR Science"
+                width={600}
+                height={300}
+                className="h-52 w-full object-cover"
+              />
+            </div>
+
+            <div className="mb-8 text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-500 shadow-lg">
+                <Atom className="h-8 w-8 text-white" />
+              </div>
+
+              <h2 className="mt-5 text-3xl font-bold text-slate-800">
+                Welcome to VRSPS
+              </h2>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Sign in to access the VRSPS dashboard
+              </p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-5">
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Email Address
+                </label>
+
+                <input
+                  type="email"
+                  placeholder="student@vrsps.ug"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-700">
+                  Password
+                </label>
+
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="h-12 w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-semibold text-white shadow-lg transition-all hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-70"
+              >
+                {loading ? 'Signing In...' : 'Sign In'}
+              </button>
+
+            </form>
+
+            <div className="mt-8 border-t border-slate-100 pt-5 text-center">
+              <p className="text-xs leading-6 text-slate-500">
+                Secure access for students, teachers, and administrators.
+              </p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
