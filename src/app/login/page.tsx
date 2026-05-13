@@ -35,11 +35,11 @@ export default function LoginPage() {
 
       const response = await fetch('/api/auth/session')
       const session = await response.json()
-      const role = session?.user?.role
+      const user = session?.user
 
-      if (role === 'ADMIN') router.push('/admin/dashboard')
-      else if (role === 'TEACHER') router.push('/teacher/dashboard')
-      else if (role === 'STUDENT') router.push('/student/dashboard')
+      if (user?.canAccessAdmin) router.push('/admin/dashboard')
+      else if (user?.canAccessTeacher) router.push('/teacher/dashboard')
+      else if (user?.canAccessStudent) router.push('/student/dashboard')
       else router.push('/login')
 
     } catch {

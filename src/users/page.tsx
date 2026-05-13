@@ -7,12 +7,12 @@ interface User {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'TEACHER' | 'STUDENT'
+  role: string
   createdAt: string
   _count: { sessions: number }
 }
 
-const roleColors = {
+const roleColors: Record<string, string> = {
   ADMIN: 'bg-red-100 text-red-700',
   TEACHER: 'bg-blue-100 text-blue-700',
   STUDENT: 'bg-green-100 text-green-700',
@@ -106,7 +106,7 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-6 py-4 text-slate-500">{user.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColors[user.role]}`}>
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColors[user.role] ?? 'bg-slate-100 text-slate-700'}`}>
                       {user.role}
                     </span>
                   </td>

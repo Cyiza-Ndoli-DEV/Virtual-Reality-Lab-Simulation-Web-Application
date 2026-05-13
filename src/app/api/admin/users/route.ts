@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
+import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
 
 // GET all users
 export async function GET() {
   try {
     const session = await auth()
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || !session.user.canAccessAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -35,7 +36,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session || session.user.role !== 'ADMIN') {
+    if (!session || !session.user.canAccessAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -43,6 +44,18 @@ export async function POST(req: NextRequest) {
 
     if (!name || !email || !password || !role) {
       return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    }
+
+    const roleCode = normalizeRoleCode(role)
+    if (!roleCode) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
+    }
+    const roleDef = await requireRoleDefinitionCode(roleCode)
+    if (!roleDef) {
+      return NextResponse.json(
+        { error: 'Unknown role. Create it under Settings → Roles first.' },
+        { status: 400 }
+      )
     }
 
     // Check if email already exists
@@ -58,7 +71,7 @@ export async function POST(req: NextRequest) {
         name,
         email,
         password: hashedPassword,
-        role,
+        role: roleCode,
         createdById: session.user.id,
       },
     })

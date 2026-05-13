@@ -13,10 +13,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  ADMIN
-  TEACHER
-  STUDENT
+model RoleDefinition {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  description String?  @db.Text
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  permissions RolePermission[]
+}
+
+model RolePermission {
+  id               String         @id @default(cuid())
+  roleDefinitionId String
+  featureKey       String
+  allowed          Boolean        @default(false)
+  roleDefinition   RoleDefinition @relation(fields: [roleDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleDefinitionId, featureKey])
+  @@index([roleDefinitionId])
 }
 
 model User {
@@ -24,7 +40,8 @@ model User {
   name        String
   email       String   @unique
   password    String
-  role        Role     @default(STUDENT)
+  /// Stored role code; must match an existing `RoleDefinition.code`.
+  role        String   @default("STUDENT")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   createdById String?
