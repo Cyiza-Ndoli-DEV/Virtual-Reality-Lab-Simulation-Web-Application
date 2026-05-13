@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Users, FlaskConical, AlertTriangle, TrendingUp } from 'lucide-react'
+import { useAdminPageHeader } from '@/components/admin/admin-app-header-context'
 
 interface Stats {
   totalStudents: number
@@ -12,6 +13,8 @@ interface Stats {
 }
 
 export default function AdminDashboard() {
+  useAdminPageHeader('Dashboard', false)
+
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -32,10 +35,8 @@ export default function AdminDashboard() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-slate-800">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">Overview of the VRSPS system</p>
+        <p className="text-sm text-slate-500">Overview of the VRSPS system</p>
       </div>
-
       {loading ? (
         <p className="text-slate-400 text-sm">Loading stats...</p>
       ) : (

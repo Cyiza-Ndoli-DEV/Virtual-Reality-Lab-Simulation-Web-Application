@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
+import { replacePermissionsFromRoleCode } from '../src/lib/sync-role-permissions'
 
 const prisma = new PrismaClient()
 
@@ -143,6 +144,47 @@ async function main() {
   console.log('Admin: admin@vrsps.ug / Admin@1234')
   console.log('Teacher: teacher@vrsps.ug / Teacher@1234')
   console.log('Student: student@vrsps.ug / Student@1234')
+
+  await prisma.roleDefinition.upsert({
+    where: { code: 'ADMIN' },
+    update: {},
+    create: {
+      code: 'ADMIN',
+      name: 'Admin',
+      description:
+        'Full access to the admin portal, user management, and system configuration.',
+      isSystem: true,
+    },
+  })
+  await prisma.roleDefinition.upsert({
+    where: { code: 'TEACHER' },
+    update: {},
+    create: {
+      code: 'TEACHER',
+      name: 'Educator',
+      description:
+        'Teacher portal access for reviewing student work, reports, and lab activity.',
+      isSystem: true,
+    },
+  })
+  await prisma.roleDefinition.upsert({
+    where: { code: 'STUDENT' },
+    update: {},
+    create: {
+      code: 'STUDENT',
+      name: 'Student',
+      description:
+        'Student portal for running VR lab sessions, quizzes, and viewing assigned experiments.',
+      isSystem: true,
+    },
+  })
+
+  for (const code of ['ADMIN', 'TEACHER', 'STUDENT'] as const) {
+    const rd = await prisma.roleDefinition.findUnique({ where: { code } })
+    if (rd) {
+      await replacePermissionsFromRoleCode(prisma, rd.id, rd.code)
+    }
+  }
 }
 
 main()
