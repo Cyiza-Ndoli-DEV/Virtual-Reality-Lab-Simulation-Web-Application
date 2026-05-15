@@ -53,14 +53,19 @@ model User {
 }
 
 model Experiment {
-  id          String   @id @default(cuid())
-  title       String
-  description String   @db.Text
-  steps       Json
-  createdAt   DateTime @default(now())
-  sessions    ExperimentSession[]
-  quizzes     Quiz[]
-  reports     Report[]
+  id               String   @id @default(cuid())
+  title            String
+  description      String   @db.Text
+  learningOutcome  String   @db.Text
+  steps            Json
+  createdAt        DateTime @default(now())
+  subjectId        String?
+  subject          Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  sessions         ExperimentSession[]
+  quizzes          Quiz[]
+  reports          Report[]
+
+  @@index([subjectId])
 }
 
 model ExperimentSession {
@@ -118,4 +123,23 @@ model Report {
   feedbackAt      DateTime?
   student         User       @relation(fields: [studentId], references: [id])
   experiment      Experiment @relation(fields: [experimentId], references: [id])
+}
+
+enum SubjectStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Subject {
+  id          String        @id @default(cuid())
+  /// Short identifier shown in schedules and catalogs (unique).
+  code        String        @unique
+  name        String
+  status      SubjectStatus @default(ACTIVE)
+  description String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  experiments Experiment[]
+
+  @@index([status])
 }

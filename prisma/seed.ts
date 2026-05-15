@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import { replacePermissionsFromRoleCode } from '../src/lib/sync-role-permissions'
 
@@ -50,14 +50,58 @@ async function main() {
     },
   })
 
+  let chemSubjectId: string | null = null
+  try {
+    const chem = await prisma.subject.upsert({
+      where: { code: 'CHEM-101' },
+      update: {},
+      create: {
+        code: 'CHEM-101',
+        name: 'General Chemistry I',
+        status: 'ACTIVE',
+        description: 'Stoichiometry, atomic structure, and introductory thermodynamics.',
+      },
+    })
+    await prisma.subject.upsert({
+      where: { code: 'PHY-101' },
+      update: {},
+      create: {
+        code: 'PHY-101',
+        name: 'General Physics I',
+        status: 'ACTIVE',
+        description: 'Mechanics, waves, and heat for STEM majors.',
+      },
+    })
+    chemSubjectId = chem.id
+    console.log('Sample subjects CHEM-101 and PHY-101 ensured.')
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
+      console.warn(
+        '\n⚠️  Subject table not found — sample subjects were skipped.\n' +
+          '   Run:  npx prisma migrate dev\n' +
+          '   Then run  npm run seed  again.\n'
+      )
+    } else {
+      throw e
+    }
+  }
+
   // Create Experiments
   const titration = await prisma.experiment.upsert({
     where: { id: 'titration-001' },
-    update: {},
+    update: {
+      learningOutcome:
+        'Students will perform a titration, identify the endpoint using an indicator, and relate titre volume to concentration.',
+      ...(chemSubjectId ? { subjectId: chemSubjectId } : {}),
+    },
     create: {
       id: 'titration-001',
       title: 'Acid-Base Titration',
-      description: 'Learn to determine the concentration of an unknown acid using a standard base solution.',
+      description:
+        'Learn to determine the concentration of an unknown acid using a standard base solution.',
+      learningOutcome:
+        'Students will perform a titration, identify the endpoint using an indicator, and relate titre volume to concentration.',
+      subjectId: chemSubjectId,
       steps: [
         { step: 1, title: 'Prepare burette', description: 'Fill the burette with NaOH solution' },
         { step: 2, title: 'Prepare flask', description: 'Add HCl solution to the conical flask' },
@@ -70,11 +114,19 @@ async function main() {
 
   const combustion = await prisma.experiment.upsert({
     where: { id: 'combustion-001' },
-    update: {},
+    update: {
+      learningOutcome:
+        'Students will describe combustion evidence, predict products for magnesium in air, and follow Bunsen burner safety.',
+      ...(chemSubjectId ? { subjectId: chemSubjectId } : {}),
+    },
     create: {
       id: 'combustion-001',
       title: 'Magnesium Combustion',
-      description: 'Observe the combustion of magnesium in oxygen and identify the product formed.',
+      description:
+        'Observe the combustion of magnesium in oxygen and identify the product formed.',
+      learningOutcome:
+        'Students will describe combustion evidence, predict products for magnesium in air, and follow Bunsen burner safety.',
+      subjectId: chemSubjectId,
       steps: [
         { step: 1, title: 'Safety first', description: 'Put on safety goggles before starting' },
         { step: 2, title: 'Set up burner', description: 'Turn on the Bunsen burner' },
