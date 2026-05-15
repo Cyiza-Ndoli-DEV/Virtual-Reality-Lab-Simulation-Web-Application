@@ -13,6 +13,7 @@ import {
   Settings,
   Shield,
   User,
+  BookMarked,
   ChevronDown,
   ChevronRight,
 } from 'lucide-react'
@@ -22,6 +23,7 @@ import { AdminAppHeaderProvider } from '@/components/admin/admin-app-header-cont
 const settingsSubItems = [
   { label: 'Profile', href: '/admin/profile', icon: User },
   { label: 'Roles', href: '/admin/settings/roles', icon: Shield },
+  { label: 'Subjects', href: '/admin/settings/subjects', icon: BookMarked },
 ] as const
 
 const navItems = [
@@ -41,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   useEffect(() => {
     if (pathname.startsWith('/admin/settings') || pathname.startsWith('/admin/profile')) {
-      setSettingsOpen(true)
+      queueMicrotask(() => setSettingsOpen(true))
     }
   }, [pathname])
 
