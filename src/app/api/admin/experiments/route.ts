@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { teacherSubjectScopeForSession } from '@/lib/teacher-subject'
 
 const defaultSteps = [
   { step: 1, title: 'Setup', description: 'Follow lab safety and equipment instructions.' },
@@ -13,7 +14,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const teacherSubjectId = await teacherSubjectScopeForSession(session)
+
     const rows = await prisma.experiment.findMany({
+      where: teacherSubjectId ? { subjectId: teacherSubjectId } : undefined,
       orderBy: [{ createdAt: 'desc' }],
       include: {
         subject: { select: { id: true, code: true, name: true, status: true } },
@@ -50,7 +54,11 @@ export async function POST(req: NextRequest) {
     const description = typeof body.description === 'string' ? body.description.trim() : ''
     const learningOutcome =
       typeof body.learningOutcome === 'string' ? body.learningOutcome.trim() : ''
-    const subjectId = typeof body.subjectId === 'string' ? body.subjectId.trim() : ''
+    const teacherSubjectId = await teacherSubjectScopeForSession(session)
+    let subjectId = typeof body.subjectId === 'string' ? body.subjectId.trim() : ''
+    if (teacherSubjectId) {
+      subjectId = teacherSubjectId
+    }
 
     if (!title || !description) {
       return NextResponse.json(

@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { ClipboardList, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -44,6 +45,7 @@ interface ExperimentRow {
 }
 
 export default function AdminExperimentsPage() {
+  const router = useRouter()
   useAdminPageHeader('Experiments', true)
 
   const [rows, setRows] = useState<ExperimentRow[]>([])
@@ -307,6 +309,16 @@ export default function AdminExperimentsPage() {
                         type="button"
                         variant="ghost"
                         size="icon-sm"
+                        className="text-violet-600 hover:bg-violet-50 hover:text-violet-700"
+                        aria-label={`Questionnaire setup for ${r.title}`}
+                        onClick={() => router.push(`/admin/experiments/${r.id}/questionnaire`)}
+                      >
+                        <ClipboardList className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
                         className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                         aria-label={`Edit ${r.title}`}
                         onClick={() => openEdit(r)}
@@ -512,7 +524,7 @@ export default function AdminExperimentsPage() {
               {deleteRow ? (
                 <>
                   This removes <span className="font-medium text-slate-900">{deleteRow.title}</span>{' '}
-                  and related quizzes, sessions, and reports. This cannot be undone.
+                  and related quizzes, questionnaires, sessions, and reports. This cannot be undone.
                 </>
               ) : null}
             </DialogDescription>

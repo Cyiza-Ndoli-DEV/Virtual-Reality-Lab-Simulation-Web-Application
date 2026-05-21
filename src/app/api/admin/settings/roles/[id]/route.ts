@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { requireFeature } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
 import {
   replacePermissionsFromClientMap,
@@ -53,8 +54,9 @@ export async function PATCH(
 ) {
   try {
     const session = await auth()
-    if (!session || !session.user.canAccessAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const access = await requireFeature(session, 'admin.users')
+    if (!access.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
     const { id } = await ctx.params

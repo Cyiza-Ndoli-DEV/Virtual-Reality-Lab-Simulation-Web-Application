@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { requireFeature } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
 import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
+import { TEACHER_ROLE_CODE, validateSubjectId } from '@/lib/teacher-subject'
 export async function PATCH(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth()
-    if (!session || !session.user.canAccessAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const access = await requireFeature(session, 'admin.users')
+    if (!access.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
     const { id } = await ctx.params
@@ -28,6 +31,23 @@ export async function PATCH(
       )
     }
 
+    const subjectIdRaw =
+      typeof body.subjectId === 'string' ? body.subjectId.trim() : ''
+    let subjectId: string | null = null
+    if (roleCode === TEACHER_ROLE_CODE) {
+      if (!subjectIdRaw) {
+        return NextResponse.json(
+          { error: 'Subject is required for educators' },
+          { status: 400 }
+        )
+      }
+      const subject = await validateSubjectId(subjectIdRaw)
+      if (!subject) {
+        return NextResponse.json({ error: 'Invalid or inactive subject' }, { status: 400 })
+      }
+      subjectId = subject.id
+    }
+
     const existing = await prisma.user.findFirst({
       where: { email, NOT: { id } },
     })
@@ -37,8 +57,16 @@ export async function PATCH(
 
     const user = await prisma.user.update({
       where: { id },
-      data: { name, email, role: roleCode },
-      select: { id: true, name: true, email: true, role: true, createdAt: true },
+      data: { name, email, role: roleCode, subjectId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        subjectId: true,
+        subject: { select: { id: true, code: true, name: true } },
+        createdAt: true,
+      },
     })
 
     return NextResponse.json(user)
@@ -53,12 +81,13 @@ export async function DELETE(
 ) {
   try {
     const session = await auth()
-    if (!session || !session.user.canAccessAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const access = await requireFeature(session, 'admin.users')
+    if (!access.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
     const { id } = await ctx.params
-    if (id === session.user.id) {
+    if (id === session!.user!.id) {
       return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
     }
 

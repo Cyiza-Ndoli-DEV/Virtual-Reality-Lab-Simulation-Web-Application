@@ -10,6 +10,11 @@ export const APP_FEATURES = [
   { key: 'admin.settings', label: 'Settings & roles', group: 'Administration' },
   { key: 'teacher.portal', label: 'Teacher portal', group: 'Teaching' },
   { key: 'teacher.reports', label: 'Review student reports', group: 'Teaching' },
+  {
+    key: 'teacher.registerStudents',
+    label: 'Register students',
+    group: 'Teaching',
+  },
   { key: 'student.portal', label: 'Student portal', group: 'Learning' },
   { key: 'student.labs', label: 'VR labs & quizzes', group: 'Learning' },
 ] as const
@@ -35,8 +40,12 @@ export function defaultPermissionMapForRoleCode(
   if (code === 'TEACHER') {
     return {
       ...none,
+      'admin.portal': true,
+      'admin.experiments': true,
+      'admin.reports': true,
       'teacher.portal': true,
       'teacher.reports': true,
+      'teacher.registerStudents': true,
     }
   }
   if (code === 'STUDENT') {
