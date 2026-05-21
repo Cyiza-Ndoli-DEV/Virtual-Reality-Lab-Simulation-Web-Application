@@ -38,7 +38,7 @@ export default function LoginPage() {
       const user = session?.user
 
       if (user?.canAccessAdmin) router.push('/admin/dashboard')
-      else if (user?.canAccessTeacher) router.push('/teacher/dashboard')
+      else if (user?.canAccessTeacher) router.push('/admin/student-work')
       else if (user?.canAccessStudent) router.push('/student/dashboard')
       else router.push('/login')
 

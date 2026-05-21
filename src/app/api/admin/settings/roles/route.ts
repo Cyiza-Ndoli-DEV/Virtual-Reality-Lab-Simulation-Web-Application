@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { requireFeature } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
 import { APP_FEATURE_KEYS } from '@/lib/app-features'
 import { replacePermissionsFromRoleCode } from '@/lib/sync-role-permissions'
@@ -11,8 +12,9 @@ function normalizeCode(raw: string) {
 export async function GET() {
   try {
     const session = await auth()
-    if (!session || !session.user.canAccessAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const access = await requireFeature(session, 'admin.users')
+    if (!access.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
     const [definitions, userCounts] = await Promise.all([
@@ -61,8 +63,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth()
-    if (!session || !session.user.canAccessAdmin) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const access = await requireFeature(session, 'admin.users')
+    if (!access.ok) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
     const body = await req.json()

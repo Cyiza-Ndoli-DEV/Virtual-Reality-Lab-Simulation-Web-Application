@@ -13,8 +13,17 @@ export default auth((req) => {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (pathname.startsWith('/teacher') && !u?.canAccessTeacher) {
-    return NextResponse.redirect(new URL('/login', req.url))
+  if (u?.role === 'TEACHER' && pathname.startsWith('/admin/settings')) {
+    return NextResponse.redirect(new URL('/admin/dashboard', req.url))
+  }
+
+  if (pathname.startsWith('/teacher')) {
+    if (!u?.canAccessTeacher && !u?.canAccessAdmin) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+    if (u?.canAccessAdmin) {
+      return NextResponse.redirect(new URL('/admin/dashboard', req.url))
+    }
   }
 
   if (pathname.startsWith('/student') && !u?.canAccessStudent) {

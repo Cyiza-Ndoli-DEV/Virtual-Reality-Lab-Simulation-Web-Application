@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import {
+  assertExperimentAccessibleBySession,
+  teacherSubjectScopeForSession,
+} from '@/lib/teacher-subject'
 
 export async function PATCH(
   req: NextRequest,
@@ -17,6 +21,11 @@ export async function PATCH(
 
     const existing = await prisma.experiment.findUnique({ where: { id } })
     if (!existing) {
+      return NextResponse.json({ error: 'Experiment not found' }, { status: 404 })
+    }
+
+    const scope = await assertExperimentAccessibleBySession(session, id)
+    if (!scope.ok) {
       return NextResponse.json({ error: 'Experiment not found' }, { status: 404 })
     }
 
@@ -63,7 +72,9 @@ export async function PATCH(
       data.learningOutcome = lo
     }
 
-    if ('subjectId' in body) {
+    const teacherSubjectId = await teacherSubjectScopeForSession(session)
+
+    if ('subjectId' in body && !teacherSubjectId) {
       if (body.subjectId === null) {
         data.subjectId = null
       } else if (typeof body.subjectId === 'string') {
@@ -129,6 +140,11 @@ export async function DELETE(
       return NextResponse.json({ error: 'Experiment not found' }, { status: 404 })
     }
 
+    const scope = await assertExperimentAccessibleBySession(session, id)
+    if (!scope.ok) {
+      return NextResponse.json({ error: 'Experiment not found' }, { status: 404 })
+    }
+
     await prisma.$transaction(async (tx) => {
       await tx.wrongStepLog.deleteMany({
         where: { session: { experimentId: id } },
@@ -139,6 +155,10 @@ export async function DELETE(
       })
       await tx.quiz.deleteMany({ where: { experimentId: id } })
       await tx.report.deleteMany({ where: { experimentId: id } })
+      await tx.questionnaireSubmission.deleteMany({
+        where: { questionnaire: { experimentId: id } },
+      })
+      await tx.experimentQuestionnaire.deleteMany({ where: { experimentId: id } })
       await tx.experiment.delete({ where: { id } })
     })
 

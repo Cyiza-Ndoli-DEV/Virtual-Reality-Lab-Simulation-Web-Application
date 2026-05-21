@@ -5,8 +5,9 @@ import {
   accessFlagsForRoleCode,
   portalLabelFromAccessFlags,
 } from '@/lib/role-portal-access'
+import { getPermissionsForRoleCode } from '@/lib/portal-permissions'
 
-/** Current signed-in user (admin portal) for the profile screen. */
+/** Current signed-in staff user (admin / educator portal). */
 export async function GET() {
   try {
     const session = await auth()
@@ -32,12 +33,14 @@ export async function GET() {
 
     const flags = await accessFlagsForRoleCode(user.role)
     const portalLabel = portalLabelFromAccessFlags(flags, user.role)
+    const permissions = await getPermissionsForRoleCode(user.role)
 
     return NextResponse.json({
       ...user,
       createdAt: user.createdAt.toISOString(),
       updatedAt: user.updatedAt.toISOString(),
       portalLabel,
+      permissions,
     })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

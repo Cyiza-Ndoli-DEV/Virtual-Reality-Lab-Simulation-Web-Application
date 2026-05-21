@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from '@prisma/client'
 import { hash } from 'bcryptjs'
 import { replacePermissionsFromRoleCode } from '../src/lib/sync-role-permissions'
+import { sampleQuestionnaireConfig } from '../src/lib/questionnaire'
 
 const prisma = new PrismaClient()
 
@@ -21,19 +22,6 @@ async function main() {
       email: 'admin@vrsps.ug',
       password: adminPassword,
       role: 'ADMIN',
-    },
-  })
-
-  // Create Teacher
-  const teacher = await prisma.user.upsert({
-    where: { email: 'teacher@vrsps.ug' },
-    update: {},
-    create: {
-      name: 'John Teacher',
-      email: 'teacher@vrsps.ug',
-      password: teacherPassword,
-      role: 'TEACHER',
-      createdById: admin.id,
     },
   })
 
@@ -74,6 +62,19 @@ async function main() {
     })
     chemSubjectId = chem.id
     console.log('Sample subjects CHEM-101 and PHY-101 ensured.')
+
+    await prisma.user.upsert({
+      where: { email: 'teacher@vrsps.ug' },
+      update: { subjectId: chemSubjectId },
+      create: {
+        name: 'John Teacher',
+        email: 'teacher@vrsps.ug',
+        password: teacherPassword,
+        role: 'TEACHER',
+        subjectId: chemSubjectId,
+        createdById: admin.id,
+      },
+    })
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
       console.warn(
@@ -84,6 +85,20 @@ async function main() {
     } else {
       throw e
     }
+  }
+
+  if (!chemSubjectId) {
+    await prisma.user.upsert({
+      where: { email: 'teacher@vrsps.ug' },
+      update: {},
+      create: {
+        name: 'John Teacher',
+        email: 'teacher@vrsps.ug',
+        password: teacherPassword,
+        role: 'TEACHER',
+        createdById: admin.id,
+      },
+    })
   }
 
   // Create Experiments
@@ -136,6 +151,33 @@ async function main() {
       ],
     },
   })
+
+  const sampleQuestionnaire = sampleQuestionnaireConfig()
+  try {
+    await prisma.experimentQuestionnaire.upsert({
+      where: { experimentId: titration.id },
+      update: {
+        title: sampleQuestionnaire.title,
+        sections: sampleQuestionnaire.sections,
+      },
+      create: {
+        experimentId: titration.id,
+        title: sampleQuestionnaire.title,
+        sections: sampleQuestionnaire.sections,
+      },
+    })
+    console.log('Sample post-practical questionnaire linked to Acid-Base Titration.')
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
+      console.warn(
+        '\n⚠️  Questionnaire tables not found — sample questionnaire was skipped.\n' +
+          '   Run:  npx prisma migrate dev\n' +
+          '   Then run  npm run seed  again.\n'
+      )
+    } else {
+      throw e
+    }
+  }
 
   // Create Quizzes
   await prisma.quiz.upsert({

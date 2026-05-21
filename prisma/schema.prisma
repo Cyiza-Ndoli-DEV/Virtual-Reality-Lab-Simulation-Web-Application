@@ -47,9 +47,15 @@ model User {
   createdById String?
   createdBy   User?    @relation("CreatedUsers", fields: [createdById], references: [id])
   createdUsers User[]  @relation("CreatedUsers")
-  sessions     ExperimentSession[]
-  quizAttempts QuizAttempt[]
-  reports      Report[]
+  /// Educators are assigned to one subject catalog entry.
+  subjectId   String?
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  sessions                 ExperimentSession[]
+  quizAttempts             QuizAttempt[]
+  reports                  Report[]
+  questionnaireSubmissions QuestionnaireSubmission[]
+
+  @@index([subjectId])
 }
 
 model Experiment {
@@ -64,6 +70,7 @@ model Experiment {
   sessions         ExperimentSession[]
   quizzes          Quiz[]
   reports          Report[]
+  questionnaire    ExperimentQuestionnaire?
 
   @@index([subjectId])
 }
@@ -80,6 +87,7 @@ model ExperimentSession {
   student      User       @relation(fields: [studentId], references: [id])
   experiment   Experiment @relation(fields: [experimentId], references: [id])
   wrongStepLogs WrongStepLog[]
+  questionnaireSubmission QuestionnaireSubmission?
 }
 
 model WrongStepLog {
@@ -125,6 +133,43 @@ model Report {
   experiment      Experiment @relation(fields: [experimentId], references: [id])
 }
 
+/// Admin-defined post-VR practical questionnaire (one per experiment).
+model ExperimentQuestionnaire {
+  id           String   @id @default(cuid())
+  experimentId String   @unique
+  title        String
+  sections     Json
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  submissions  QuestionnaireSubmission[]
+}
+
+enum QuestionnaireReviewStatus {
+  PENDING
+  COMPLETED
+}
+
+model QuestionnaireSubmission {
+  id              String    @id @default(cuid())
+  studentId       String
+  questionnaireId String
+  sessionId       String?   @unique
+  answers         Json
+  submittedAt     DateTime  @default(now())
+  reviewStatus    QuestionnaireReviewStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  scores          Json?
+  scoredAt        DateTime?
+  student         User      @relation(fields: [studentId], references: [id])
+  questionnaire   ExperimentQuestionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
+  session         ExperimentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, questionnaireId])
+  @@index([questionnaireId])
+}
+
 enum SubjectStatus {
   ACTIVE
   INACTIVE
@@ -140,6 +185,7 @@ model Subject {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   experiments Experiment[]
+  teachers    User[]
 
   @@index([status])
 }

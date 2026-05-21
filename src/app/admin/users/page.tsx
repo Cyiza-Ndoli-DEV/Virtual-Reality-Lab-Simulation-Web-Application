@@ -37,12 +37,21 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { useAdminPageHeader } from '@/components/admin/admin-app-header-context'
 
+interface SubjectOption {
+  id: string
+  code: string
+  name: string
+  status: string
+}
+
 interface UserRow {
   id: string
   name: string
   email: string
   /** Matches `RoleDefinition.code`. */
   role: string
+  subjectId?: string | null
+  subject?: { id: string; code: string; name: string } | null
   createdAt: string
   _count: { sessions: number }
 }
@@ -116,7 +125,9 @@ function profileSubtitle(u: UserRow) {
     const lvl = Math.max(1, Math.min(99, Math.floor(u._count.sessions / 2) + 1))
     return `Lvl ${lvl} Practitioner`
   }
-  if (u.role === 'TEACHER') return 'Senior Faculty'
+  if (u.role === 'TEACHER') {
+    return u.subject ? `${u.subject.code} · ${u.subject.name}` : 'Educator'
+  }
   if (u.role === 'ADMIN') return 'Superuser'
   return 'Member'
 }
@@ -141,8 +152,11 @@ export default function AdminUsersPage() {
   const [inviteEmail, setInviteEmail] = useState('')
   const [invitePassword, setInvitePassword] = useState('')
   const [inviteRole, setInviteRole] = useState('STUDENT')
+  const [inviteSubjectId, setInviteSubjectId] = useState('')
   const [inviteBusy, setInviteBusy] = useState(false)
   const [inviteError, setInviteError] = useState('')
+
+  const [subjects, setSubjects] = useState<SubjectOption[]>([])
 
   const [viewUser, setViewUser] = useState<UserRow | null>(null)
 
@@ -150,8 +164,14 @@ export default function AdminUsersPage() {
   const [editName, setEditName] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editRole, setEditRole] = useState('STUDENT')
+  const [editSubjectId, setEditSubjectId] = useState('')
   const [editBusy, setEditBusy] = useState(false)
   const [editError, setEditError] = useState('')
+
+  const activeSubjects = useMemo(
+    () => subjects.filter((s) => s.status === 'ACTIVE'),
+    [subjects]
+  )
 
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
@@ -191,11 +211,12 @@ export default function AdminUsersPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [uRes, sRes, aRes, rolesRes] = await Promise.all([
+      const [uRes, sRes, aRes, rolesRes, subRes] = await Promise.all([
         fetch('/api/admin/users'),
         fetch('/api/admin/stats'),
         fetch('/api/admin/activity'),
         fetch('/api/admin/settings/roles'),
+        fetch('/api/admin/settings/subjects'),
       ])
       if (uRes.ok) {
         const data = await uRes.json()
@@ -223,6 +244,10 @@ export default function AdminUsersPage() {
             }))
           )
         }
+      }
+      if (subRes.ok) {
+        const subs = await subRes.json()
+        setSubjects(Array.isArray(subs) ? subs : [])
       }
     } finally {
       setLoading(false)
@@ -282,6 +307,10 @@ export default function AdminUsersPage() {
 
   async function submitInvite() {
     setInviteError('')
+    if (inviteRole === 'TEACHER' && !inviteSubjectId) {
+      setInviteError('Select a subject for this educator')
+      return
+    }
     setInviteBusy(true)
     try {
       const res = await fetch('/api/admin/users', {
@@ -292,6 +321,7 @@ export default function AdminUsersPage() {
           email: inviteEmail,
           password: invitePassword,
           role: inviteRole,
+          ...(inviteRole === 'TEACHER' ? { subjectId: inviteSubjectId } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -307,6 +337,7 @@ export default function AdminUsersPage() {
         (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])?.code ??
           'STUDENT'
       )
+      setInviteSubjectId('')
       await loadData()
     } finally {
       setInviteBusy(false)
@@ -319,11 +350,16 @@ export default function AdminUsersPage() {
     setEditName(u.name)
     setEditEmail(u.email)
     setEditRole(u.role)
+    setEditSubjectId(u.subjectId ?? '')
   }
 
   async function submitEdit() {
     if (!editUser) return
     setEditError('')
+    if (editRole === 'TEACHER' && !editSubjectId) {
+      setEditError('Select a subject for this educator')
+      return
+    }
     setEditBusy(true)
     try {
       const res = await fetch(`/api/admin/users/${editUser.id}`, {
@@ -333,6 +369,7 @@ export default function AdminUsersPage() {
           name: editName,
           email: editEmail,
           role: editRole,
+          ...(editRole === 'TEACHER' ? { subjectId: editSubjectId } : {}),
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -500,11 +537,13 @@ export default function AdminUsersPage() {
               type="button"
               onClick={() => {
                 setInviteError('')
-                setInviteRole((prev) =>
-                  userRoleOptions.some((o) => o.code === prev)
-                    ? prev
-                    : (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])
-                        ?.code ?? 'STUDENT'
+                setInviteName('')
+                setInviteEmail('')
+                setInvitePassword('')
+                setInviteSubjectId('')
+                setInviteRole(
+                  (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])
+                    ?.code ?? 'STUDENT'
                 )
                 setInviteOpen(true)
               }}
@@ -527,6 +566,7 @@ export default function AdminUsersPage() {
                     Email address
                   </TableHead>
                   <TableHead className="font-semibold text-slate-600">Role</TableHead>
+                  <TableHead className="font-semibold text-slate-600">Subject</TableHead>
                   <TableHead className="font-semibold text-slate-600">Status</TableHead>
                   <TableHead className="font-semibold text-slate-600">
                     Date created
@@ -539,7 +579,7 @@ export default function AdminUsersPage() {
               <TableBody>
                 {pageSlice.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-12 text-center text-slate-500">
+                    <TableCell colSpan={7} className="py-12 text-center text-slate-500">
                       {loading ? 'Loading users…' : 'No users match your filters.'}
                     </TableCell>
                   </TableRow>
@@ -579,6 +619,13 @@ export default function AdminUsersPage() {
                         >
                           {displayRoleName(u.role)}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-slate-600">
+                        {u.role === 'TEACHER' && u.subject
+                          ? `${u.subject.code}`
+                          : u.role === 'TEACHER'
+                            ? '—'
+                            : '—'}
                       </TableCell>
                       <TableCell>
                         <span className="inline-flex items-center gap-2 text-sm text-slate-700">
@@ -783,6 +830,18 @@ export default function AdminUsersPage() {
                     </Badge>
                   </dd>
                 </div>
+                {viewUser.role === 'TEACHER' ? (
+                  <div>
+                    <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Subject
+                    </dt>
+                    <dd className="mt-0.5 text-slate-900">
+                      {viewUser.subject
+                        ? `${viewUser.subject.code} — ${viewUser.subject.name}`
+                        : 'Not assigned'}
+                    </dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">
                     Status
@@ -896,6 +955,8 @@ export default function AdminUsersPage() {
                 id="invite-name"
                 value={inviteName}
                 onChange={(e) => setInviteName(e.target.value)}
+                placeholder="e.g. John Teacher"
+                autoComplete="off"
                 className="h-10"
               />
             </div>
@@ -906,6 +967,8 @@ export default function AdminUsersPage() {
                 type="email"
                 value={inviteEmail}
                 onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="e.g. teacher@school.ug"
+                autoComplete="off"
                 className="h-10"
               />
             </div>
@@ -916,6 +979,8 @@ export default function AdminUsersPage() {
                 type="password"
                 value={invitePassword}
                 onChange={(e) => setInvitePassword(e.target.value)}
+                placeholder="Choose a temporary password"
+                autoComplete="new-password"
                 className="h-10"
               />
             </div>
@@ -924,7 +989,10 @@ export default function AdminUsersPage() {
               <select
                 id="invite-role"
                 value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
+                onChange={(e) => {
+                  setInviteRole(e.target.value)
+                  if (e.target.value !== 'TEACHER') setInviteSubjectId('')
+                }}
                 className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
               >
                 {userRoleOptions.map((opt) => (
@@ -934,6 +1002,30 @@ export default function AdminUsersPage() {
                 ))}
               </select>
             </div>
+            {inviteRole === 'TEACHER' ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="invite-subject">Subject</Label>
+                <select
+                  id="invite-subject"
+                  value={inviteSubjectId}
+                  onChange={(e) => setInviteSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  required
+                >
+                  <option value="">Select subject…</option>
+                  {activeSubjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} — {s.name}
+                    </option>
+                  ))}
+                </select>
+                {activeSubjects.length === 0 ? (
+                  <p className="text-xs text-amber-700">
+                    Add an active subject under Settings → Subjects first.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
             {inviteError && (
               <p className="text-sm text-red-600">{inviteError}</p>
             )}
@@ -958,7 +1050,9 @@ export default function AdminUsersPage() {
         <DialogContent className="max-w-md sm:max-w-md" showCloseButton>
           <DialogHeader>
             <DialogTitle>Edit user</DialogTitle>
-            <DialogDescription>Update name, email, or role.</DialogDescription>
+            <DialogDescription>
+              Update name, email, role, and subject for educators.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <div className="grid gap-1.5">
@@ -985,7 +1079,10 @@ export default function AdminUsersPage() {
               <select
                 id="edit-role"
                 value={editRole}
-                onChange={(e) => setEditRole(e.target.value)}
+                onChange={(e) => {
+                  setEditRole(e.target.value)
+                  if (e.target.value !== 'TEACHER') setEditSubjectId('')
+                }}
                 className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
               >
                 {userRoleOptions.map((opt) => (
@@ -995,6 +1092,25 @@ export default function AdminUsersPage() {
                 ))}
               </select>
             </div>
+            {editRole === 'TEACHER' ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="edit-subject">Subject</Label>
+                <select
+                  id="edit-subject"
+                  value={editSubjectId}
+                  onChange={(e) => setEditSubjectId(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                  required
+                >
+                  <option value="">Select subject…</option>
+                  {activeSubjects.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} — {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
             {editError && <p className="text-sm text-red-600">{editError}</p>}
           </div>
           <DialogFooter>
