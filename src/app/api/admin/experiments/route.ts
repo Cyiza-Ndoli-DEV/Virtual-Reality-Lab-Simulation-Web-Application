@@ -30,7 +30,6 @@ export async function GET() {
         title: e.title,
         description: e.description,
         learningOutcome: e.learningOutcome,
-        steps: e.steps,
         createdAt: e.createdAt.toISOString(),
         subjectId: e.subjectId,
         subject: e.subject,

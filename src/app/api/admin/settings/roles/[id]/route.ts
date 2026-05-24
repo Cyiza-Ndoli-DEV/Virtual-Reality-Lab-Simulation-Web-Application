@@ -6,6 +6,7 @@ import {
   replacePermissionsFromClientMap,
   sanitizePermissionPayload,
 } from '@/lib/sync-role-permissions'
+import { invalidateRoleData } from '@/lib/role-data'
 import { APP_FEATURE_KEYS } from '@/lib/app-features'
 
 function normalizeCode(raw: string) {
@@ -168,6 +169,7 @@ export async function PATCH(
     }
 
     const dto = await buildRoleDto(id)
+    invalidateRoleData()
     return NextResponse.json(dto)
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

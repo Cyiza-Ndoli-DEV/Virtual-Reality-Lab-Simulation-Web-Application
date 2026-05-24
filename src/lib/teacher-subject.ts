@@ -11,6 +11,10 @@ export async function teacherSubjectScopeForSession(
     return null
   }
 
+  if (session.user.subjectId !== undefined) {
+    return session.user.subjectId
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: session.user.id },
     select: { subjectId: true },

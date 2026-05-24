@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import prisma from '@/lib/prisma'
-import {
-  accessFlagsForRoleCode,
-  portalLabelFromAccessFlags,
-} from '@/lib/role-portal-access'
-import { getPermissionsForRoleCode } from '@/lib/portal-permissions'
+import { getAdminMeData } from '@/lib/data/admin-me'
 
 /** Current signed-in staff user (admin / educator portal). */
 export async function GET() {
@@ -15,33 +10,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-
+    const user = await getAdminMeData(session.user.id)
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const flags = await accessFlagsForRoleCode(user.role)
-    const portalLabel = portalLabelFromAccessFlags(flags, user.role)
-    const permissions = await getPermissionsForRoleCode(user.role)
-
-    return NextResponse.json({
-      ...user,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
-      portalLabel,
-      permissions,
-    })
+    return NextResponse.json(user)
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

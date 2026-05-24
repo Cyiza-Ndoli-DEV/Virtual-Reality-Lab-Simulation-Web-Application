@@ -13,24 +13,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-        _count: { select: { sessions: true } },
-      },
-    })
+    const [user, stats] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { sessions: true } },
+        },
+      }),
+      getStudentProfileStats(session.user.id),
+    ])
 
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    const stats = await getStudentProfileStats(user.id)
     const level = studentPractitionerLevel(user._count.sessions)
 
     return NextResponse.json({

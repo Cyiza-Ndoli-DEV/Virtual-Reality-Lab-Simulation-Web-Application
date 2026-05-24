@@ -29,9 +29,9 @@ export default function AdminUsersPage() {
   useEffect(() => { fetchUsers() }, [])
 
   async function fetchUsers() {
-    const res = await fetch('/api/admin/users')
+    const res = await fetch('/api/admin/users?all=true')
     const data = await res.json()
-    setUsers(data)
+    setUsers(Array.isArray(data) ? data : [])
     setLoading(false)
   }
 

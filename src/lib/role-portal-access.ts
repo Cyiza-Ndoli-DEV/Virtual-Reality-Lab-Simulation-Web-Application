@@ -1,28 +1,9 @@
-import prisma from './prisma'
+import { getRoleData } from './role-data'
 
 /** Which app areas this role code may open (from `RolePermission` + feature keys). */
 export async function accessFlagsForRoleCode(code: string) {
-  const def = await prisma.roleDefinition.findUnique({
-    where: { code },
-    select: {
-      permissions: { select: { featureKey: true, allowed: true } },
-    },
-  })
-  if (!def) {
-    return {
-      canAccessAdmin: code === 'ADMIN',
-      canAccessTeacher: code === 'TEACHER',
-      canAccessStudent: code === 'STUDENT',
-    }
-  }
-  const allowed = new Set(
-    def.permissions.filter((p) => p.allowed).map((p) => p.featureKey)
-  )
-  return {
-    canAccessAdmin: allowed.has('admin.portal'),
-    canAccessTeacher: allowed.has('teacher.portal'),
-    canAccessStudent: allowed.has('student.portal'),
-  }
+  const { flags } = await getRoleData(code)
+  return flags
 }
 
 export type PortalAccessFlags = {

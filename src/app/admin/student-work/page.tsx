@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAdminPageHeader } from '@/components/admin/admin-app-header-context'
@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 
 type Filter = 'PENDING' | 'COMPLETED' | 'ALL'
 
-interface SubmissionRow {
+interface SubmissionListRow {
   id: string
   submittedAt: string
   reviewedAt: string | null
@@ -39,6 +39,9 @@ interface SubmissionRow {
     subject: { code: string; name: string } | null
   }
   questionnaireTitle: string
+}
+
+interface SubmissionDetail extends SubmissionListRow {
   answers: QuestionnaireAnswers
   config: QuestionnaireConfig | null
 }
@@ -51,19 +54,24 @@ export default function AdminStudentWorkPage() {
   useAdminPageHeader('Student work', true)
 
   const [filter, setFilter] = useState<Filter>('PENDING')
-  const [rows, setRows] = useState<SubmissionRow[]>([])
+  const [rows, setRows] = useState<SubmissionListRow[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [viewRow, setViewRow] = useState<SubmissionRow | null>(null)
+  const [viewRow, setViewRow] = useState<SubmissionDetail | null>(null)
+  const [viewLoading, setViewLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const q = filter === 'ALL' ? '' : `?status=${filter}`
-      const res = await fetch(`/api/admin/student-work${q}`)
+      const params = new URLSearchParams()
+      if (filter !== 'ALL') params.set('status', filter)
+      params.set('pageSize', '50')
+      const res = await fetch(`/api/admin/student-work?${params}`)
       if (!res.ok) return
       const data = await res.json()
-      setRows(Array.isArray(data) ? data : [])
+      setRows(Array.isArray(data.items) ? data.items : [])
+      setTotal(typeof data.total === 'number' ? data.total : 0)
     } finally {
       setLoading(false)
     }
@@ -75,10 +83,18 @@ export default function AdminStudentWorkPage() {
     })
   }, [load])
 
-  const pendingCount = useMemo(
-    () => rows.filter((r) => r.reviewStatus === 'PENDING').length,
-    [rows]
-  )
+  async function openView(row: SubmissionListRow) {
+    setViewLoading(true)
+    setViewRow(null)
+    try {
+      const res = await fetch(`/api/admin/student-work/${row.id}`)
+      if (res.ok) {
+        setViewRow((await res.json()) as SubmissionDetail)
+      }
+    } finally {
+      setViewLoading(false)
+    }
+  }
 
   async function markComplete(id: string) {
     setBusyId(id)
@@ -102,6 +118,8 @@ export default function AdminStudentWorkPage() {
     { key: 'COMPLETED', label: 'Completed' },
     { key: 'ALL', label: 'All' },
   ]
+
+  const pendingCount = filter === 'PENDING' ? total : 0
 
   return (
     <div>
@@ -188,7 +206,7 @@ export default function AdminStudentWorkPage() {
                         size="icon-sm"
                         className="text-blue-600 hover:bg-blue-50"
                         aria-label="View submission"
-                        onClick={() => setViewRow(r)}
+                        onClick={() => void openView(r)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -218,23 +236,32 @@ export default function AdminStudentWorkPage() {
         </p>
       ) : null}
 
-      <Dialog open={!!viewRow} onOpenChange={(o) => !o && setViewRow(null)}>
+      <Dialog
+        open={viewLoading || !!viewRow}
+        onOpenChange={(o) => {
+          if (!o) setViewRow(null)
+        }}
+      >
         <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {viewRow?.student.name} — {viewRow?.experiment.title}
+              {viewRow
+                ? `${viewRow.student.name} — ${viewRow.experiment.title}`
+                : 'Loading submission…'}
             </DialogTitle>
           </DialogHeader>
-          {viewRow?.config ? (
+          {viewLoading ? (
+            <p className="text-sm text-slate-500">Loading…</p>
+          ) : viewRow?.config ? (
             <QuestionnaireReviewCard
               config={viewRow.config}
               answers={viewRow.answers}
               workflowStatus={workflowFromReview(viewRow.reviewStatus)}
               showFooter={false}
             />
-          ) : (
+          ) : viewRow ? (
             <p className="text-sm text-slate-500">Questionnaire configuration unavailable.</p>
-          )}
+          ) : null}
           <DialogFooter>
             <Button variant="outline" type="button" onClick={() => setViewRow(null)}>
               Close
