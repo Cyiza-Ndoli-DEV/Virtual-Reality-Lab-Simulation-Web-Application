@@ -25,6 +25,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            password: true,
+            role: true,
+            subjectId: true,
+          },
         })
 
         if (!user) {
@@ -47,6 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           role: user.role,
+          subjectId: user.subjectId,
           ...portals,
         }
       },
@@ -57,6 +66,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id
         token.role = user.role
+        token.subjectId = user.subjectId ?? null
         token.canAccessAdmin = user.canAccessAdmin ?? false
         token.canAccessTeacher = user.canAccessTeacher ?? false
         token.canAccessStudent = user.canAccessStudent ?? false
@@ -67,6 +77,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.subjectId = (token.subjectId as string | null) ?? null
         session.user.canAccessAdmin = Boolean(token.canAccessAdmin)
         session.user.canAccessTeacher = Boolean(token.canAccessTeacher)
         session.user.canAccessStudent = Boolean(token.canAccessStudent)

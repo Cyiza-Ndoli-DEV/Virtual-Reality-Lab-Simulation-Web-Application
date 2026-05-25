@@ -4,6 +4,7 @@ import { requireFeature } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
 import { APP_FEATURE_KEYS } from '@/lib/app-features'
 import { replacePermissionsFromRoleCode } from '@/lib/sync-role-permissions'
+import { invalidateRoleData } from '@/lib/role-data'
 
 function normalizeCode(raw: string) {
   return raw.trim().toUpperCase().replace(/\s+/g, '_')
@@ -113,6 +114,8 @@ export async function POST(req: NextRequest) {
       include: { permissions: true },
     })
     const allowedCount = withPerms.permissions.filter((p) => p.allowed).length
+
+    invalidateRoleData()
 
     return NextResponse.json({
       id: withPerms.id,

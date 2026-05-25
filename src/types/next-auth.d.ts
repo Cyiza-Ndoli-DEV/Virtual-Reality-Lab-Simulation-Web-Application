@@ -5,6 +5,7 @@ declare module 'next-auth/jwt' {
   interface JWT {
     id?: string
     role?: string
+    subjectId?: string | null
     canAccessAdmin?: boolean
     canAccessTeacher?: boolean
     canAccessStudent?: boolean
@@ -13,6 +14,7 @@ declare module 'next-auth/jwt' {
 
 declare module 'next-auth' {
   interface User {
+    subjectId?: string | null
     canAccessAdmin?: boolean
     canAccessTeacher?: boolean
     canAccessStudent?: boolean
@@ -22,6 +24,7 @@ declare module 'next-auth' {
     user: {
       id: string
       role: string
+      subjectId: string | null
       canAccessAdmin: boolean
       canAccessTeacher: boolean
       canAccessStudent: boolean

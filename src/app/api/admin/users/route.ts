@@ -5,9 +5,42 @@ import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
 import { TEACHER_ROLE_CODE, validateSubjectId } from '@/lib/teacher-subject'
+import type { Prisma } from '@prisma/client'
 
-// GET all users
-export async function GET() {
+const DEFAULT_PAGE_SIZE = 10
+const MAX_PAGE_SIZE = 100
+
+function userListSelect() {
+  return {
+    id: true,
+    name: true,
+    email: true,
+    role: true,
+    subjectId: true,
+    subject: { select: { id: true, code: true, name: true } },
+    createdAt: true,
+    _count: { select: { sessions: true } },
+  } as const
+}
+
+function buildWhere(
+  search: string,
+  role: string
+): Prisma.UserWhereInput {
+  const where: Prisma.UserWhereInput = {}
+  if (role && role !== 'all') where.role = role
+  const q = search.trim()
+  if (q) {
+    where.OR = [
+      { name: { contains: q } },
+      { email: { contains: q } },
+    ]
+  }
+  return where
+}
+
+// GET users (paginated by default; ?all=true for full list e.g. CSV export)
+export async function GET(req: NextRequest) {
   try {
     const session = await auth()
     const access = await requireFeature(session, 'admin.users')
@@ -15,24 +48,42 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        subjectId: true,
-        subject: { select: { id: true, code: true, name: true } },
-        createdAt: true,
-        _count: {
-          select: { sessions: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-    })
+    const params = req.nextUrl.searchParams
+    const all = params.get('all') === 'true'
+    const search = params.get('search') ?? ''
+    const role = params.get('role') ?? 'all'
+    const where = buildWhere(search, role)
+    const select = userListSelect()
 
-    return NextResponse.json(users)
-  } catch (error) {
+    if (all) {
+      const users = await prisma.user.findMany({
+        where,
+        select,
+        orderBy: { createdAt: 'desc' },
+      })
+      return NextResponse.json(users)
+    }
+
+    const page = Math.max(1, parseInt(params.get('page') ?? '1', 10) || 1)
+    const pageSize = Math.min(
+      MAX_PAGE_SIZE,
+      Math.max(1, parseInt(params.get('pageSize') ?? String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE)
+    )
+    const skip = (page - 1) * pageSize
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        select,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: pageSize,
+      }),
+      prisma.user.count({ where }),
+    ])
+
+    return NextResponse.json({ users, total, page, pageSize })
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -82,7 +133,6 @@ export async function POST(req: NextRequest) {
       subjectId = subject.id
     }
 
-    // Check if email already exists
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 })
@@ -110,7 +160,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json(user)
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

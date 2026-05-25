@@ -137,6 +137,7 @@ export default function AdminUsersPage() {
 
   const [tab, setTab] = useState<'overview' | 'activity'>('overview')
   const [users, setUsers] = useState<UserRow[]>([])
+  const [totalUsers, setTotalUsers] = useState(0)
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [stats, setStats] = useState<StatsPayload | null>(null)
   const [loading, setLoading] = useState(true)
@@ -208,86 +209,104 @@ export default function AdminUsersPage() {
     [roleDefinitions]
   )
 
-  const loadData = useCallback(async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true)
     try {
-      const [uRes, sRes, aRes, rolesRes, subRes] = await Promise.all([
-        fetch('/api/admin/users'),
-        fetch('/api/admin/stats'),
-        fetch('/api/admin/activity'),
-        fetch('/api/admin/settings/roles'),
-        fetch('/api/admin/settings/subjects'),
-      ])
-      if (uRes.ok) {
-        const data = await uRes.json()
-        setUsers(Array.isArray(data) ? data : [])
+      const params = new URLSearchParams({
+        page: String(page),
+        pageSize: String(PAGE_SIZE),
+      })
+      if (search.trim()) params.set('search', search.trim())
+      if (roleFilter !== 'all') params.set('role', roleFilter)
+
+      const res = await fetch(`/api/admin/users?${params}`)
+      if (!res.ok) return
+      const data = await res.json()
+      setUsers(Array.isArray(data.users) ? data.users : [])
+      setTotalUsers(typeof data.total === 'number' ? data.total : 0)
+    } finally {
+      setLoading(false)
+    }
+  }, [page, search, roleFilter])
+
+  const loadMeta = useCallback(async () => {
+    const [rolesRes, subRes] = await Promise.all([
+      fetch('/api/admin/settings/roles'),
+      fetch('/api/admin/settings/subjects'),
+    ])
+    if (rolesRes.ok) {
+      const defs = await rolesRes.json()
+      if (Array.isArray(defs)) {
+        setRoleDefinitions(
+          defs.map((d: { code: string; name: string }) => ({
+            code: d.code,
+            name: d.name,
+          }))
+        )
       }
-      if (sRes.ok) {
-        const s = await sRes.json()
-        setStats({
-          totalUsers: s.totalUsers ?? 0,
-          activeNow: s.activeNow ?? 0,
-          vrUsageHours: s.vrUsageHours ?? 0,
-        })
-      }
-      if (aRes.ok) {
-        const a = await aRes.json()
-        setActivity(Array.isArray(a) ? a : [])
-      }
-      if (rolesRes.ok) {
-        const defs = await rolesRes.json()
-        if (Array.isArray(defs)) {
-          setRoleDefinitions(
-            defs.map((d: { code: string; name: string }) => ({
-              code: d.code,
-              name: d.name,
-            }))
-          )
-        }
-      }
-      if (subRes.ok) {
-        const subs = await subRes.json()
-        setSubjects(Array.isArray(subs) ? subs : [])
-      }
+    }
+    if (subRes.ok) {
+      const subs = await subRes.json()
+      setSubjects(Array.isArray(subs) ? subs : [])
+    }
+  }, [])
+
+  const loadStats = useCallback(async () => {
+    const res = await fetch('/api/admin/stats')
+    if (!res.ok) return
+    const s = await res.json()
+    setStats({
+      totalUsers: s.totalUsers ?? 0,
+      activeNow: s.activeNow ?? 0,
+      vrUsageHours: s.vrUsageHours ?? 0,
+    })
+  }, [])
+
+  const loadActivity = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/admin/activity')
+      if (!res.ok) return
+      const a = await res.json()
+      setActivity(Array.isArray(a) ? a : [])
     } finally {
       setLoading(false)
     }
   }, [])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- loadData is async; state updates run after awaits
-    void loadData()
-  }, [loadData])
+    void loadMeta()
+  }, [loadMeta])
 
-  const filteredUsers = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return users.filter((u) => {
-      if (roleFilter !== 'all' && u.role !== roleFilter) return false
-      if (statusFilter !== 'all') {
-        // Schema has no account status; placeholder filter keeps UI parity
-        if (statusFilter === 'inactive' || statusFilter === 'pending') return false
-      }
-      if (!q) return true
-      return (
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
-      )
-    })
-  }, [users, search, roleFilter, statusFilter])
+  useEffect(() => {
+    void loadUsers()
+  }, [loadUsers])
 
-  const totalFiltered = filteredUsers.length
-  const pageCount = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE))
-  /** Clamped so filters never leave pagination on an empty page */
+  useEffect(() => {
+    if (tab === 'overview') void loadStats()
+  }, [tab, loadStats])
+
+  useEffect(() => {
+    if (tab === 'activity') void loadActivity()
+  }, [tab, loadActivity])
+
+  useEffect(() => {
+    setPage(1)
+  }, [search, roleFilter, statusFilter])
+
+  const pageCount = Math.max(1, Math.ceil(totalUsers / PAGE_SIZE))
   const safePage = Math.min(page, pageCount)
-  const pageSlice = useMemo(() => {
-    const start = (safePage - 1) * PAGE_SIZE
-    return filteredUsers.slice(start, start + PAGE_SIZE)
-  }, [filteredUsers, safePage])
+  const pageSlice = users
 
-  function exportCsv() {
+  async function exportCsv() {
+    const params = new URLSearchParams({ all: 'true' })
+    if (search.trim()) params.set('search', search.trim())
+    if (roleFilter !== 'all') params.set('role', roleFilter)
+    const res = await fetch(`/api/admin/users?${params}`)
+    const exportUsers: UserRow[] = res.ok ? await res.json() : users
     const rows = [
       ['Name', 'Email', 'Role', 'Date created'].join(','),
-      ...filteredUsers.map((u) =>
+      ...exportUsers.map((u) =>
         [
           JSON.stringify(u.name),
           JSON.stringify(u.email),
@@ -338,7 +357,7 @@ export default function AdminUsersPage() {
           'STUDENT'
       )
       setInviteSubjectId('')
-      await loadData()
+      await loadUsers()
     } finally {
       setInviteBusy(false)
     }
@@ -378,7 +397,7 @@ export default function AdminUsersPage() {
         return
       }
       setEditUser(null)
-      await loadData()
+      await loadUsers()
     } finally {
       setEditBusy(false)
     }
@@ -396,7 +415,7 @@ export default function AdminUsersPage() {
         return
       }
       setDeleteTarget(null)
-      await loadData()
+      await loadUsers()
     } finally {
       setDeleteBusy(false)
     }
@@ -676,10 +695,10 @@ export default function AdminUsersPage() {
             <div className="flex flex-col gap-3 border-t border-slate-100 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
                 Showing{' '}
-                {totalFiltered === 0
+                {totalUsers === 0
                   ? '0'
-                  : `${(safePage - 1) * PAGE_SIZE + 1} to ${Math.min(safePage * PAGE_SIZE, totalFiltered)}`}{' '}
-                of {formatNumber(totalFiltered)} entries
+                  : `${(safePage - 1) * PAGE_SIZE + 1} to ${Math.min(safePage * PAGE_SIZE, totalUsers)}`}{' '}
+                of {formatNumber(totalUsers)} entries
               </p>
               <div className="flex items-center gap-1">
                 <button

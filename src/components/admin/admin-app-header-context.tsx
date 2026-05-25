@@ -10,7 +10,6 @@ import {
 } from 'react'
 import { portalLabelFromAccessFlags } from '@/lib/role-portal-access'
 
-/** Session user shape from `/api/auth/session` (matches NextAuth session.user). */
 export type AdminHeaderUser = {
   name?: string | null
   email?: string | null
@@ -22,7 +21,6 @@ export type AdminHeaderUser = {
 
 type AdminAppHeaderContextValue = {
   sessionUser: AdminHeaderUser | null
-  /** Optional override for the signed-in user block (defaults to `sessionUser`). */
   headerUser: AdminHeaderUser | null
   setHeaderUser: (user: AdminHeaderUser | null) => void
   title: string
@@ -36,30 +34,16 @@ const AdminAppHeaderContext = createContext<AdminAppHeaderContextValue | null>(n
 
 export function AdminAppHeaderProvider({
   children,
+  sessionUser,
   openMobileSidebar,
 }: {
   children: ReactNode
+  sessionUser: AdminHeaderUser
   openMobileSidebar: () => void
 }) {
-  const [sessionUser, setSessionUser] = useState<AdminHeaderUser | null>(null)
   const [headerUser, setHeaderUser] = useState<AdminHeaderUser | null>(null)
   const [title, setTitle] = useState('')
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false)
-
-  useEffect(() => {
-    let cancelled = false
-    void fetch('/api/auth/session')
-      .then((r) => r.json())
-      .then((s: { user?: AdminHeaderUser | null }) => {
-        if (!cancelled) setSessionUser(s?.user ?? null)
-      })
-      .catch(() => {
-        if (!cancelled) setSessionUser(null)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   const value = useMemo(
     () => ({
@@ -96,12 +80,6 @@ export function useAdminAppHeader() {
   return ctx
 }
 
-/**
- * Register the global admin top bar for this page.
- * @param title — shown on the left (page title).
- * @param hasUnreadNotifications — red dot on the bell when true.
- * @param userOverride — optional; omit to use the signed-in session user from layout.
- */
 export function useAdminPageHeader(
   title: string,
   hasUnreadNotifications = false,
