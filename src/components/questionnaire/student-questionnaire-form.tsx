@@ -129,7 +129,11 @@ function DesignSectionView({
         <LinedPaperArea
           id={section.id}
           value={
-            current && 'text' in current && current.mode === 'single' ? current.text : ''
+            current &&
+            'text' in current &&
+            (!('mode' in current) || current.mode === 'single')
+              ? current.text
+              : ''
           }
           readOnly={readOnly}
           onChange={(text) =>

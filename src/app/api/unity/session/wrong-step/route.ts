@@ -1,15 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-
-function verifyApiKey(req: NextRequest) {
-  const apiKey = req.headers.get('X-API-KEY')
-  return apiKey === process.env.UNITY_API_KEY
-}
+import { unityApiKeyUnauthorized, verifyUnityApiKey } from '@/lib/unity-api'
 
 export async function POST(req: NextRequest) {
   try {
-    if (!verifyApiKey(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!verifyUnityApiKey(req)) {
+      return unityApiKeyUnauthorized()
     }
 
     const { sessionId, stepNumber, description } = await req.json()

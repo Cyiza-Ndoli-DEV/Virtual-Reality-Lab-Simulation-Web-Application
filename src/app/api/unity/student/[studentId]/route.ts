@@ -1,40 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-
-function verifyApiKey(req: NextRequest) {
-  const apiKey = req.headers.get('X-API-KEY')
-  return apiKey === process.env.UNITY_API_KEY
-}
+import { unityApiKeyUnauthorized, verifyUnityApiKey } from '@/lib/unity-api'
+import { getUnityStudentById } from '@/lib/unity-student-auth'
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { studentId: string } }
+  { params }: { params: Promise<{ studentId: string }> }
 ) {
   try {
-    if (!verifyApiKey(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!verifyUnityApiKey(req)) {
+      return unityApiKeyUnauthorized()
     }
 
-    const student = await prisma.user.findUnique({
-      where: { id: params.studentId },
-      include: {
-        _count: {
-          select: { sessions: true },
-        },
-      },
-    })
+    const { studentId } = await params
+    const student = await getUnityStudentById(studentId)
 
     if (!student) {
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
+    const sessionCount = await prisma.experimentSession.count({
+      where: { studentId: student.id },
+    })
+
     return NextResponse.json({
-      student: {
-        id: student.id,
-        name: student.name,
-        email: student.email,
-      },
-      experimentsCompleted: student._count.sessions,
+      student,
+      experimentsCompleted: sessionCount,
     })
   } catch (error) {
     console.error('Error fetching student:', error)

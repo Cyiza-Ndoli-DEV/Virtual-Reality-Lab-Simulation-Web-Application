@@ -1,19 +1,55 @@
 'use client'
 
 import Image from 'next/image'
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
+import { signIn, useSession } from 'next-auth/react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, FlaskConical, GraduationCap, Atom } from 'lucide-react'
+import { defaultPortalPath, safeCallbackUrl } from '@/lib/portal-routes'
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<LoginShell loading />}>
+      <LoginForm />
+    </Suspense>
+  )
+}
+
+function LoginShell({ loading }: { loading?: boolean }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-sky-50 via-white to-cyan-50">
+      <p className="text-sm text-slate-500">
+        {loading ? 'Loading sign in…' : 'Preparing sign in…'}
+      </p>
+    </div>
+  )
+}
+
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'))
+  const justSignedOut = searchParams.get('signedOut') === '1'
+  const { status } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (status !== 'unauthenticated' && !justSignedOut) return
+    setEmail('')
+    setPassword('')
+    setShowPassword(false)
+    setError('')
+  }, [status, justSignedOut])
+
+  useEffect(() => {
+    if (!justSignedOut) return
+    router.replace('/login', { scroll: false })
+  }, [justSignedOut, router])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -36,14 +72,14 @@ export default function LoginPage() {
       const response = await fetch('/api/auth/session')
       const session = await response.json()
       const user = session?.user
+      const destination =
+        callbackUrl ?? defaultPortalPath(user) ?? '/login'
 
-      if (user?.canAccessAdmin) router.push('/admin/dashboard')
-      else if (user?.canAccessTeacher) router.push('/admin/student-work')
-      else if (user?.canAccessStudent) router.push('/student/dashboard')
-      else router.push('/login')
-
+      router.push(destination)
+      router.refresh()
     } catch {
       setError('Something went wrong. Please try again.')
+    } finally {
       setLoading(false)
     }
   }
@@ -155,7 +191,12 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="space-y-5">
+            <form
+              key={justSignedOut ? 'signed-out' : 'login'}
+              onSubmit={handleLogin}
+              className="space-y-5"
+              autoComplete="off"
+            >
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -164,10 +205,12 @@ export default function LoginPage() {
 
                 <input
                   type="email"
-                  placeholder="student@vrsps.ug"
+                  name="email"
+                  placeholder="you@school.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  autoComplete="off"
                   className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
                 />
               </div>
@@ -180,10 +223,12 @@ export default function LoginPage() {
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
+                    name="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    autoComplete="new-password"
                     className="h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 pr-12 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
                   />
 

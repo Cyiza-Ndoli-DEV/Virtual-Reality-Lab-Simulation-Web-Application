@@ -14,6 +14,7 @@ declare module 'next-auth/jwt' {
 
 declare module 'next-auth' {
   interface User {
+    role?: string
     subjectId?: string | null
     canAccessAdmin?: boolean
     canAccessTeacher?: boolean
