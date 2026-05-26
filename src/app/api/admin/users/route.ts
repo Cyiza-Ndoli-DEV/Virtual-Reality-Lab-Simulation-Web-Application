@@ -147,7 +147,7 @@ export async function POST(req: NextRequest) {
         password: hashedPassword,
         role: roleCode,
         subjectId,
-        createdById: session.user.id,
+        createdById: access.session.user.id,
       },
       select: {
         id: true,

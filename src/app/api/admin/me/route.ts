@@ -6,7 +6,10 @@ import { getAdminMeData } from '@/lib/data/admin-me'
 export async function GET() {
   try {
     const session = await auth()
-    if (!session?.user?.id || !session.user.canAccessAdmin) {
+    const staff =
+      session?.user?.id &&
+      (session.user.canAccessAdmin || session.user.canAccessTeacher)
+    if (!staff) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

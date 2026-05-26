@@ -5,8 +5,10 @@ import prisma from './prisma'
 import { accessFlagsForRoleCode } from './role-portal-access'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',
+    maxAge: 60 * 60 * 8, // 8 hours
   },
   pages: {
     signIn: '/login',

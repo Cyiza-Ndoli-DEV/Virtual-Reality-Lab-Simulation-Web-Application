@@ -172,10 +172,44 @@ These endpoints are called by the Unity VR application. All require the `X-API-K
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `POST` | `/api/unity/auth/login` | Student sign-in (email + password) |
+| `GET` | `/api/unity/auth/session` | Validate VR access token |
 | `GET` | `/api/unity/student/:id` | Verify student exists |
 | `POST` | `/api/unity/session/start` | Start an experiment session |
 | `POST` | `/api/unity/session/end` | End session with results |
 | `POST` | `/api/unity/session/wrong-step` | Log a wrong step |
+
+All Unity routes require the `X-API-KEY` header (shared secret embedded in the VR app).
+
+**Example — Student login (VR headset):**
+```http
+POST /api/unity/auth/login
+X-API-KEY: your-unity-api-key-here
+Content-Type: application/json
+
+{
+  "email": "student@vrsps.ug",
+  "password": "Student@1234",
+  "apiKey": "vrsps-dev-unity-key-2026"
+}
+```
+
+**Response:**
+```json
+{
+  "student": {
+    "id": "clx123abc",
+    "name": "Jane Student",
+    "email": "student@university.ac.ug"
+  },
+  "accessToken": "eyJ...signed-token",
+  "expiresAt": "2026-05-27T12:00:00.000Z"
+}
+```
+
+Send the API key as header `X-API-KEY` **or** JSON field `apiKey` (helpful if the VR client has trouble with custom headers). The value must match `UNITY_API_KEY` in `.env` — **save `.env` and restart `npm run dev`** after changing it.
+
+Store `accessToken` on the device and send it as `Authorization: Bearer <accessToken>` when calling `GET /api/unity/auth/session` to confirm the student is still signed in. Use `student.id` as `studentId` for session start/end APIs.
 
 **Example — Start Session:**
 ```http
@@ -243,6 +277,7 @@ Content-Type: application/json
 | `NEXTAUTH_SECRET` | Secret for encrypting sessions | Any random string |
 | `NEXTAUTH_URL` | Base URL of the app | `http://localhost:3000` |
 | `UNITY_API_KEY` | API key shared with Unity app | Any random string |
+| `UNITY_VR_TOKEN_TTL_SECONDS` | VR login token lifetime (optional) | `28800` (8 hours) |
 
 ---
 

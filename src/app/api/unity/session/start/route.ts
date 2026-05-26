@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
-
-// Verify the request is coming from Unity using API key
-function verifyApiKey(req: NextRequest) {
-  const apiKey = req.headers.get('X-API-KEY')
-  return apiKey === process.env.UNITY_API_KEY
-}
+import { unityApiKeyUnauthorized, verifyUnityApiKey } from '@/lib/unity-api'
 
 export async function POST(req: NextRequest) {
   try {
-    // Check API key
-    if (!verifyApiKey(req)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!verifyUnityApiKey(req)) {
+      return unityApiKeyUnauthorized()
     }
 
     const { studentId, experimentId } = await req.json()
