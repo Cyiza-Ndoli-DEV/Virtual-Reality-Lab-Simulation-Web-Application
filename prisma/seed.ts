@@ -179,6 +179,32 @@ async function main() {
     }
   }
 
+  try {
+    await prisma.experimentReportAssignment.upsert({
+      where: { experimentId: titration.id },
+      update: {},
+      create: {
+        experimentId: titration.id,
+        title: 'Acid–Base Titration Lab Report',
+        instructions: `Write a formal lab report covering:
+• Aim and brief background
+• Method (including VR steps you performed)
+• Results and observations from the virtual titration
+• Discussion — sources of error and how endpoint detection relates to concentration
+• Conclusion`,
+      },
+    })
+    console.log('Sample lab report assignment for titration-001 ensured.')
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
+      console.warn(
+        '\n⚠️  Report assignment table not found — run: npx prisma migrate dev\n'
+      )
+    } else {
+      throw e
+    }
+  }
+
   // Create Quizzes
   await prisma.quiz.upsert({
     where: { id: 'quiz-titration-001' },

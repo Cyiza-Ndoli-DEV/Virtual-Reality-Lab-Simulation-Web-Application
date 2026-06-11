@@ -16,6 +16,7 @@ export interface ExperimentLabMeta {
   }
   labProgress: LabProgress
   questionnaireTitle: string | null
+  reportTitle: string | null
 }
 
 export function ExperimentLabShell({
@@ -42,6 +43,7 @@ export function ExperimentLabShell({
       experiment: data.experiment,
       labProgress: data.labProgress,
       questionnaireTitle: data.questionnaire?.title ?? null,
+      reportTitle: data.report?.title ?? null,
     })
   }, [experimentId])
 
@@ -68,9 +70,11 @@ export function ExperimentLabShell({
 
   const sub =
     subtitle ??
-    (meta.questionnaireTitle
-      ? `Lab Report Questionnaire${meta.experiment.subject ? ` · ${meta.experiment.subject.code}` : ''}`
-      : meta.experiment.subject?.code ?? '')
+    (meta.reportTitle
+      ? meta.reportTitle
+      : meta.questionnaireTitle
+        ? `Lab Report Questionnaire${meta.experiment.subject ? ` · ${meta.experiment.subject.code}` : ''}`
+        : meta.experiment.subject?.code ?? '')
 
   return (
     <ExperimentLabRefreshProvider refresh={load}>

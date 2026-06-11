@@ -1,20 +1,27 @@
 'use client'
 
 import { Check, Circle } from 'lucide-react'
-import type { ProgressStepState } from '@/lib/questionnaire-display'
+import type { LabProgress, ProgressStepState } from '@/lib/questionnaire-display'
 import { cn } from '@/lib/utils'
 
-export type LabProgress = {
-  virtualPractical: ProgressStepState
-  questionnaire: ProgressStepState
-  finalGrade: ProgressStepState
+export type { LabProgress }
+
+const STEP_LABELS: Record<
+  'virtualPractical' | 'questionnaire' | 'writtenReport' | 'finalGrade',
+  string
+> = {
+  virtualPractical: 'Virtual Practical',
+  questionnaire: 'Questionnaire',
+  writtenReport: 'Written Report',
+  finalGrade: 'Final Grade',
 }
 
-const steps: { key: keyof LabProgress; label: string }[] = [
-  { key: 'virtualPractical', label: 'Virtual Practical' },
-  { key: 'questionnaire', label: 'Questionnaire' },
-  { key: 'finalGrade', label: 'Final Grade' },
-]
+function visibleSteps(progress: LabProgress) {
+  const keys = ['virtualPractical', 'questionnaire', 'writtenReport', 'finalGrade'] as const
+  return keys
+    .filter((key) => key === 'virtualPractical' || key === 'finalGrade' || progress[key] !== null)
+    .map((key) => ({ key, label: STEP_LABELS[key], state: progress[key]! }))
+}
 
 function StepIcon({ state }: { state: ProgressStepState }) {
   if (state === 'completed') {
@@ -39,15 +46,15 @@ function StepIcon({ state }: { state: ProgressStepState }) {
 }
 
 export function LabProgressSidebar({ progress }: { progress: LabProgress }) {
+  const steps = visibleSteps(progress)
   return (
     <aside className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
       <h2 className="text-sm font-semibold text-slate-900">Lab Progress</h2>
       <ul className="mt-4 space-y-4">
-        {steps.map(({ key, label }) => {
-          const state = progress[key]
+        {steps.map(({ key, label, state }) => {
           return (
             <li key={key} className="flex items-center gap-3">
-              <StepIcon state={state} />
+              <StepIcon state={state as ProgressStepState} />
               <span
                 className={cn(
                   'text-sm font-medium',

@@ -19,7 +19,7 @@ import { LabWorkflowStatusBadge } from '@/components/student/lab-workflow-status
 import type { QuestionnaireAnswers, QuestionnaireConfig } from '@/lib/questionnaire'
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
 import type { LabStatus } from '@/lib/student-lab-status'
-import type { LabProgress } from '@/components/student/lab-progress-sidebar'
+import type { LabProgress } from '@/lib/questionnaire-display'
 
 type ExperimentDetail = {
   experiment: {
@@ -31,7 +31,9 @@ type ExperimentDetail = {
   status: LabStatus
   progressPercent: number
   hasQuestionnaire: boolean
+  hasReportAssignment: boolean
   workflowStatus: LabWorkflowStatus
+  reportWorkflowStatus: LabWorkflowStatus
   questionnaire: {
     title: string
     config: QuestionnaireConfig
@@ -39,6 +41,16 @@ type ExperimentDetail = {
     submittedAt: string | null
     reviewStatus: 'PENDING' | 'COMPLETED' | null
     answers: QuestionnaireAnswers | null
+  } | null
+  report: {
+    title: string
+    instructions: string
+    submitted: boolean
+    submittedAt: string | null
+    reviewStatus: 'PENDING' | 'COMPLETED' | null
+    reviewedAt: string | null
+    teacherFeedback: string | null
+    content: string | null
   } | null
   gradeLabel: string | null
   labProgress: LabProgress
@@ -106,11 +118,21 @@ function ExperimentDetailContent({
   setVrLogOpen: (v: boolean) => void
   onLabUpdated: () => void
 }) {
-  const { experiment, status, questionnaire, vrSession, workflowStatus, labProgress } =
-    data
+  const {
+    experiment,
+    status,
+    questionnaire,
+    report,
+    vrSession,
+    workflowStatus,
+    reportWorkflowStatus,
+    labProgress,
+  } = data
   const submitted = questionnaire?.submitted ?? false
+  const reportSubmitted = report?.submitted ?? false
   const answers = (questionnaire?.answers ?? {}) as QuestionnaireAnswers
   const teacherCompleted = questionnaire?.reviewStatus === 'COMPLETED'
+  const reportTeacherCompleted = report?.reviewStatus === 'COMPLETED'
   const vrCompleted = labProgress.virtualPractical === 'completed'
   const vrMarkProps = {
     experimentId: experiment.id,
@@ -127,11 +149,56 @@ function ExperimentDetailContent({
     )
   }
 
+  if (reportSubmitted && report && !submitted) {
+    return (
+      <>
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <LabWorkflowStatusBadge status={reportWorkflowStatus} />
+        </div>
+        {reportTeacherCompleted ? (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">Lab report reviewed</p>
+              <p className="mt-1 text-sm text-emerald-800">
+                Your teacher has reviewed your written report.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <div>
+              <p className="font-semibold">Report awaiting review</p>
+              <p className="mt-1 text-sm text-amber-800">
+                Your lab report was submitted and is pending teacher review.
+              </p>
+            </div>
+          </div>
+        )}
+        <SubmittedReportCard report={report} experimentId={experiment.id} />
+        <VrPerformanceBanner
+          session={vrSession}
+          onReview={() => setVrLogOpen(true)}
+        />
+        <VrLogDialog
+          open={vrLogOpen}
+          onOpenChange={setVrLogOpen}
+          session={vrSession}
+          experimentTitle={experiment.title}
+        />
+      </>
+    )
+  }
+
   if (submitted && questionnaire) {
     return (
       <>
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <LabWorkflowStatusBadge status={workflowStatus} />
+          {reportSubmitted ? (
+            <LabWorkflowStatusBadge status={reportWorkflowStatus} />
+          ) : null}
         </div>
 
         {teacherCompleted ? (
@@ -164,6 +231,16 @@ function ExperimentDetailContent({
           workflowStatus={workflowStatus}
           experimentId={data.experiment.id}
         />
+
+        {reportSubmitted && report ? (
+          <div className="mt-6">
+            <SubmittedReportCard report={report} experimentId={experiment.id} />
+          </div>
+        ) : report && !reportSubmitted && vrCompleted ? (
+          <div className="mt-6">
+            <PendingReportCta experimentId={experiment.id} />
+          </div>
+        ) : null}
 
         <VrPerformanceBanner
           session={vrSession}
@@ -211,6 +288,45 @@ function ExperimentDetailContent({
             disabled={!vrCompleted}
           />
         ) : null}
+        {report && !reportSubmitted ? (
+          <PendingReportCta
+            experimentId={data.experiment.id}
+            disabled={!vrCompleted}
+          />
+        ) : null}
+      </>
+    )
+  }
+
+  if (
+    status === 'completed' &&
+    report &&
+    !reportSubmitted &&
+    (!questionnaire || submitted)
+  ) {
+    return (
+      <>
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+          <p className="text-sm">
+            You have finished the virtual practical. Write your lab report while your
+            observations are still fresh.
+          </p>
+        </div>
+        <div className="mb-4">
+          <LabWorkflowStatusBadge status={reportWorkflowStatus} />
+        </div>
+        <PendingReportCta experimentId={data.experiment.id} />
+        <VrPerformanceBanner
+          session={vrSession}
+          onReview={() => setVrLogOpen(true)}
+        />
+        <VrLogDialog
+          open={vrLogOpen}
+          onOpenChange={setVrLogOpen}
+          session={vrSession}
+          experimentTitle={experiment.title}
+        />
       </>
     )
   }
@@ -233,6 +349,9 @@ function ExperimentDetailContent({
           <LabWorkflowStatusBadge status={workflowStatus} />
         </div>
         <PendingQuestionnaireCta experimentId={data.experiment.id} />
+        {report && !reportSubmitted ? (
+          <PendingReportCta experimentId={data.experiment.id} />
+        ) : null}
         <VrPerformanceBanner
           session={vrSession}
           onReview={() => setVrLogOpen(true)}
@@ -275,17 +394,85 @@ function ExperimentDetailContent({
         <LabWorkflowStatusBadge status={workflowStatus} />
       </div>
 
-      {!data.hasQuestionnaire ? (
+      {!data.hasQuestionnaire && !data.hasReportAssignment ? (
         <p className="mt-4 text-sm text-slate-500">
-          The post-lab questionnaire has not been set up for this experiment yet.
+          Post-lab work (questionnaire or written report) has not been set up for this
+          experiment yet.
         </p>
-      ) : (
+      ) : null}
+      {data.hasQuestionnaire ? (
         <PendingQuestionnaireCta
           experimentId={data.experiment.id}
           disabled={!vrCompleted}
         />
-      )}
+      ) : null}
+      {data.hasReportAssignment && !reportSubmitted ? (
+        <PendingReportCta
+          experimentId={data.experiment.id}
+          disabled={!vrCompleted}
+        />
+      ) : null}
     </>
+  )
+}
+
+function PendingReportCta({
+  experimentId,
+  disabled,
+}: {
+  experimentId: string
+  disabled?: boolean
+}) {
+  return (
+    <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <p className="text-sm font-medium text-slate-900">Written lab report</p>
+      <p className="mt-1 text-sm text-slate-500">
+        {disabled
+          ? 'Available after you complete the virtual practical in VR.'
+          : 'Submit your report about the VR practical you completed.'}
+      </p>
+      <Button
+        asChild={!disabled}
+        className="mt-4 rounded-xl bg-teal-600 text-white hover:bg-teal-700"
+        disabled={disabled}
+      >
+        {disabled ? (
+          <span>Write lab report</span>
+        ) : (
+          <Link href={`/student/experiments/${experimentId}/report`}>
+            Write lab report
+          </Link>
+        )}
+      </Button>
+    </div>
+  )
+}
+
+function SubmittedReportCard({
+  report,
+  experimentId,
+}: {
+  report: NonNullable<ExperimentDetail['report']>
+  experimentId: string
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <p className="text-sm font-medium text-slate-900">{report.title}</p>
+      {report.teacherFeedback ? (
+        <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+          <p className="text-xs font-semibold text-blue-800">Teacher feedback</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-blue-900">
+            {report.teacherFeedback}
+          </p>
+        </div>
+      ) : null}
+      <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+        {report.content}
+      </p>
+      <Button asChild variant="outline" size="sm" className="mt-4">
+        <Link href={`/student/experiments/${experimentId}/report`}>View report</Link>
+      </Button>
+    </div>
   )
 }
 

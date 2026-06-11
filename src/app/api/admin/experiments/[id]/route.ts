@@ -155,6 +155,7 @@ export async function DELETE(
       })
       await tx.quiz.deleteMany({ where: { experimentId: id } })
       await tx.report.deleteMany({ where: { experimentId: id } })
+      await tx.experimentReportAssignment.deleteMany({ where: { experimentId: id } })
       await tx.questionnaireSubmission.deleteMany({
         where: { questionnaire: { experimentId: id } },
       })

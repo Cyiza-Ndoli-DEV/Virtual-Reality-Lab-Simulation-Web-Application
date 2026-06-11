@@ -34,37 +34,65 @@ export function answerTextForSection(
   return ''
 }
 
+export type LabProgress = {
+  virtualPractical: ProgressStepState
+  questionnaire: ProgressStepState | null
+  writtenReport: ProgressStepState | null
+  finalGrade: ProgressStepState
+}
+
 export function deriveLabProgress(input: {
   vrCompleted: boolean
   vrActive: boolean
   questionnaireSubmitted: boolean
   questionnaireReviewed?: boolean
   hasQuestionnaire: boolean
+  reportSubmitted?: boolean
+  reportReviewed?: boolean
+  hasReportAssignment?: boolean
   hasFinalGrade: boolean
-}): {
-  virtualPractical: ProgressStepState
-  questionnaire: ProgressStepState
-  finalGrade: ProgressStepState
-} {
+}): LabProgress {
   const virtualPractical: ProgressStepState = input.vrActive
     ? 'active'
     : input.vrCompleted
       ? 'completed'
       : 'pending'
 
-  let questionnaire: ProgressStepState = 'pending'
-  if (input.questionnaireReviewed) {
-    questionnaire = 'completed'
-  } else if (input.questionnaireSubmitted) {
-    questionnaire = 'active'
-  } else if (input.vrCompleted && input.hasQuestionnaire) {
-    questionnaire = 'active'
+  let questionnaire: ProgressStepState | null = null
+  if (input.hasQuestionnaire) {
+    questionnaire = 'pending'
+    if (input.questionnaireReviewed) {
+      questionnaire = 'completed'
+    } else if (input.questionnaireSubmitted) {
+      questionnaire = 'active'
+    } else if (input.vrCompleted) {
+      questionnaire = 'active'
+    }
   }
 
-  const finalGrade: ProgressStepState =
-    input.questionnaireReviewed || input.hasFinalGrade ? 'completed' : 'pending'
+  let writtenReport: ProgressStepState | null = null
+  if (input.hasReportAssignment) {
+    writtenReport = 'pending'
+    if (input.reportReviewed) {
+      writtenReport = 'completed'
+    } else if (input.reportSubmitted) {
+      writtenReport = 'active'
+    } else if (input.vrCompleted) {
+      writtenReport = 'active'
+    }
+  }
 
-  return { virtualPractical, questionnaire, finalGrade }
+  const postLabDone =
+    (input.hasQuestionnaire && input.questionnaireReviewed) ||
+    (input.hasReportAssignment && input.reportReviewed) ||
+    (!input.hasQuestionnaire &&
+      !input.hasReportAssignment &&
+      input.vrCompleted)
+
+  const finalGrade: ProgressStepState =
+    postLabDone || input.hasFinalGrade ? 'completed' : 'pending'
+
+  return { virtualPractical, questionnaire, writtenReport, finalGrade }
 }
 
 export function questionnaireItemLabel(index: number): string {

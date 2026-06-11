@@ -32,6 +32,9 @@ export async function GET(
         questionnaire: {
           select: { id: true, title: true, sections: true },
         },
+        reportAssignment: {
+          select: { id: true, title: true, instructions: true },
+        },
         quizzes: {
           select: {
             attempts: {
@@ -91,6 +94,37 @@ export async function GET(
       if (row) submission = row
     }
 
+    const hasReportAssignment = Boolean(experiment.reportAssignment)
+    let reportRow: {
+      submittedAt: Date
+      content: string
+      reviewStatus: 'PENDING' | 'COMPLETED'
+      reviewedAt: Date | null
+      teacherFeedback: string | null
+    } | null = null
+
+    if (hasReportAssignment) {
+      reportRow = await prisma.report.findUnique({
+        where: {
+          studentId_experimentId: { studentId, experimentId },
+        },
+        select: {
+          submittedAt: true,
+          content: true,
+          reviewStatus: true,
+          reviewedAt: true,
+          teacherFeedback: true,
+        },
+      })
+    }
+
+    const reportSubmittedAtIso = reportRow?.submittedAt.toISOString() ?? null
+    const reportWorkflowStatus = deriveLabWorkflowStatus({
+      hasQuestionnaire: hasReportAssignment,
+      submittedAt: reportSubmittedAtIso,
+      reviewStatus: reportRow?.reviewStatus ?? null,
+    })
+
     const submittedAtIso = submission?.submittedAt.toISOString() ?? null
     const workflowStatus = deriveLabWorkflowStatus({
       hasQuestionnaire,
@@ -138,6 +172,9 @@ export async function GET(
       questionnaireSubmitted: Boolean(submission),
       questionnaireReviewed: submission?.reviewStatus === 'COMPLETED',
       hasQuestionnaire,
+      reportSubmitted: Boolean(reportRow),
+      reportReviewed: reportRow?.reviewStatus === 'COMPLETED',
+      hasReportAssignment,
       hasFinalGrade: gradePercent !== null,
     })
 
@@ -155,7 +192,9 @@ export async function GET(
       status,
       progressPercent,
       hasQuestionnaire,
+      hasReportAssignment,
       workflowStatus,
+      reportWorkflowStatus,
       questionnaire: config
         ? {
             title: config.title,
@@ -165,6 +204,18 @@ export async function GET(
             reviewStatus: submission?.reviewStatus ?? null,
             reviewedAt: submission?.reviewedAt?.toISOString() ?? null,
             answers: submission?.answers ?? null,
+          }
+        : null,
+      report: experiment.reportAssignment
+        ? {
+            title: experiment.reportAssignment.title,
+            instructions: experiment.reportAssignment.instructions,
+            submitted: Boolean(reportRow),
+            submittedAt: reportSubmittedAtIso,
+            reviewStatus: reportRow?.reviewStatus ?? null,
+            reviewedAt: reportRow?.reviewedAt?.toISOString() ?? null,
+            teacherFeedback: reportRow?.teacherFeedback ?? null,
+            content: reportRow?.content ?? null,
           }
         : null,
       gradeLabel,

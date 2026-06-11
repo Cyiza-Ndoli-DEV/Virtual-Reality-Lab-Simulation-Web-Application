@@ -71,6 +71,7 @@ model Experiment {
   quizzes          Quiz[]
   reports          Report[]
   questionnaire    ExperimentQuestionnaire?
+  reportAssignment ExperimentReportAssignment?
 
   @@index([subjectId])
 }
@@ -88,6 +89,7 @@ model ExperimentSession {
   experiment   Experiment @relation(fields: [experimentId], references: [id])
   wrongStepLogs WrongStepLog[]
   questionnaireSubmission QuestionnaireSubmission?
+  report                  Report?
 }
 
 model WrongStepLog {
@@ -121,16 +123,40 @@ model QuizAttempt {
   quiz           Quiz @relation(fields: [quizId], references: [id])
 }
 
+/// Teacher-defined written report assignment (one per experiment).
+model ExperimentReportAssignment {
+  id           String   @id @default(cuid())
+  experimentId String   @unique
+  title        String
+  instructions String   @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  experiment   Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  reports      Report[]
+}
+
 model Report {
-  id              String    @id @default(cuid())
+  id              String                    @id @default(cuid())
   studentId       String
   experimentId    String
-  content         String    @db.Text
-  submittedAt     DateTime  @default(now())
-  teacherFeedback String?   @db.Text
+  assignmentId    String
+  content         String                    @db.Text
+  submittedAt     DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+  reviewStatus    QuestionnaireReviewStatus @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedById    String?
+  teacherFeedback String?                   @db.Text
   feedbackAt      DateTime?
-  student         User       @relation(fields: [studentId], references: [id])
-  experiment      Experiment @relation(fields: [experimentId], references: [id])
+  sessionId       String?                   @unique
+  student         User                      @relation(fields: [studentId], references: [id])
+  experiment      Experiment                @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  assignment      ExperimentReportAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  session         ExperimentSession?        @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@unique([studentId, experimentId])
+  @@index([assignmentId])
+  @@index([reviewStatus])
 }
 
 /// Admin-defined post-VR practical questionnaire (one per experiment).

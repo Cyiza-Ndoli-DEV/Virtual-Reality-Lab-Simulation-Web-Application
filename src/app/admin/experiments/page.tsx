@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ClipboardList, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ClipboardList, FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -314,6 +314,16 @@ export default function AdminExperimentsPage() {
                         onClick={() => router.push(`/admin/experiments/${r.id}/questionnaire`)}
                       >
                         <ClipboardList className="size-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        className="text-teal-600 hover:bg-teal-50 hover:text-teal-700"
+                        aria-label={`Lab report assignment for ${r.title}`}
+                        onClick={() => router.push(`/admin/experiments/${r.id}/report`)}
+                      >
+                        <FileText className="size-4" />
                       </Button>
                       <Button
                         type="button"
