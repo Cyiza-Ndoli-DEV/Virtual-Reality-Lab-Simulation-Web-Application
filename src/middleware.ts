@@ -58,7 +58,11 @@ export default auth((req) => {
 
   if (isLoggedIn) {
     const home = defaultPortalPath(user)
-    if (pathname === '/login' || pathname === '/') {
+    if (
+      pathname === '/login' ||
+      pathname === '/' ||
+      pathname.startsWith('/login/')
+    ) {
       return NextResponse.redirect(new URL(home ?? '/login', req.url))
     }
   } else if (!isPublicPagePath(pathname)) {

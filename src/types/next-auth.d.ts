@@ -21,6 +21,7 @@ declare module 'next-auth' {
     canAccessTeacher?: boolean
     canAccessStudent?: boolean
     mustChangePassword?: boolean
+    rememberMe?: boolean
   }
 
   interface Session {

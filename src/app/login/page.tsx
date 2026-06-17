@@ -1,11 +1,13 @@
 'use client'
 
 import Image from 'next/image'
+import Link from 'next/link'
 import { Suspense, useEffect, useState } from 'react'
 import { getCsrfToken, signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, FlaskConical, GraduationCap, Atom } from 'lucide-react'
 import { defaultPortalPath, safeCallbackUrl } from '@/lib/portal-routes'
+import { REMEMBER_EMAIL_STORAGE_KEY } from '@/lib/session-duration'
 
 export default function LoginPage() {
   return (
@@ -30,12 +32,29 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'))
   const justSignedOut = searchParams.get('signedOut') === '1'
+  const passwordReset = searchParams.get('reset') === '1'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [rememberMe, setRememberMe] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const savedEmail = localStorage.getItem(REMEMBER_EMAIL_STORAGE_KEY)
+    if (savedEmail) {
+      setEmail(savedEmail)
+      setRememberMe(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!passwordReset) return
+    setSuccess('Your password was updated. Sign in with your new password.')
+    router.replace('/login', { scroll: false })
+  }, [passwordReset, router])
 
   useEffect(() => {
     if (!justSignedOut) return
@@ -75,6 +94,7 @@ function LoginForm() {
       const result = await signIn('credentials', {
         email,
         password,
+        rememberMe: rememberMe ? 'true' : 'false',
         csrfToken,
         redirect: false,
       })
@@ -86,6 +106,12 @@ function LoginForm() {
             : 'Invalid email, username, or password'
         )
         return
+      }
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_EMAIL_STORAGE_KEY, email.trim())
+      } else {
+        localStorage.removeItem(REMEMBER_EMAIL_STORAGE_KEY)
       }
 
       const response = await fetch('/api/auth/session')
@@ -265,6 +291,31 @@ function LoginForm() {
                   </button>
                 </div>
               </div>
+
+              <div className="flex items-center justify-between gap-3">
+                <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Remember me
+                </label>
+
+                <Link
+                  href="/login/forgot-password"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-700"
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
+              {success && (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {success}
+                </div>
+              )}
 
               {error && (
                 <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">

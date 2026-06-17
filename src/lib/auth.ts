@@ -2,6 +2,10 @@ import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
 import { accessFlagsForRoleCode } from './role-portal-access'
+import {
+  SESSION_MAX_AGE_DEFAULT,
+  SESSION_MAX_AGE_REMEMBER,
+} from './session-duration'
 import { findUserByEmailOrUsername } from './user-lookup'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -9,7 +13,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   session: {
     strategy: 'jwt',
-    maxAge: 60 * 60 * 8, // 8 hours
+    maxAge: SESSION_MAX_AGE_REMEMBER,
   },
   pages: {
     signIn: '/login',
@@ -20,6 +24,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: 'Email or username', type: 'text' },
         password: { label: 'Password', type: 'password' },
+        rememberMe: { label: 'Remember me', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -42,6 +47,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         const portals = await accessFlagsForRoleCode(user.role)
+        const rememberMe = credentials.rememberMe === 'true'
 
         return {
           id: user.id,
@@ -50,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           role: user.role,
           subjectId: user.subjectId,
           mustChangePassword: user.mustChangePassword,
+          rememberMe,
           ...portals,
         }
       },
@@ -65,6 +72,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.canAccessTeacher = user.canAccessTeacher ?? false
         token.canAccessStudent = user.canAccessStudent ?? false
         token.mustChangePassword = user.mustChangePassword ?? false
+
+        const maxAge = user.rememberMe
+          ? SESSION_MAX_AGE_REMEMBER
+          : SESSION_MAX_AGE_DEFAULT
+        token.exp = Math.floor(Date.now() / 1000) + maxAge
       }
 
       if (trigger === 'update' && session?.mustChangePassword === false) {
