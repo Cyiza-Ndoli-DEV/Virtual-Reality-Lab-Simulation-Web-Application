@@ -2,9 +2,13 @@ import { auth } from '@/lib/auth'
 import {
   defaultPortalPath,
   isAuthApiPath,
+  isAvatarApiPath,
+  isChangePasswordPage,
+  isPasswordChangeApiPath,
   isProtectedApiPath,
   isPublicPagePath,
   isUnityApiPath,
+  portalHomePath,
 } from '@/lib/portal-routes'
 import { NextResponse } from 'next/server'
 
@@ -16,6 +20,33 @@ export default auth((req) => {
   if (isAuthApiPath(pathname) || isUnityApiPath(pathname)) {
     const requestHeaders = new Headers(req.headers)
     return NextResponse.next({ request: { headers: requestHeaders } })
+  }
+
+  if (isPasswordChangeApiPath(pathname) || isAvatarApiPath(pathname)) {
+    if (!isLoggedIn) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    return NextResponse.next()
+  }
+
+  if (isLoggedIn && user?.mustChangePassword) {
+    if (isChangePasswordPage(pathname)) {
+      const home = portalHomePath(user)
+      if (home) {
+        return NextResponse.redirect(new URL(home, req.url))
+      }
+    }
+
+    if (
+      isProtectedApiPath(pathname) &&
+      !isPasswordChangeApiPath(pathname) &&
+      !isAvatarApiPath(pathname)
+    ) {
+      return NextResponse.json(
+        { error: 'Password change required before continuing' },
+        { status: 403 }
+      )
+    }
   }
 
   if (isProtectedApiPath(pathname)) {

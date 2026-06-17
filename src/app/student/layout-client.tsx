@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Atom, LogOut, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { SessionGuard } from '@/components/session-guard'
+import { ChangePasswordProvider } from '@/components/account/change-password-provider'
 import { clientLogout } from '@/lib/client-logout'
 import { cn } from '@/lib/utils'
 
@@ -27,6 +28,7 @@ export default function StudentLayoutClient({
 
   return (
     <SessionGuard require="student">
+    <ChangePasswordProvider portalHome="/student/dashboard">
     <div className="flex min-h-screen flex-col bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-4">
@@ -105,6 +107,7 @@ export default function StudentLayoutClient({
         </div>
       </footer>
     </div>
+    </ChangePasswordProvider>
     </SessionGuard>
   )
 }

@@ -1,8 +1,8 @@
 import NextAuth from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import { compare } from 'bcryptjs'
-import prisma from './prisma'
 import { accessFlagsForRoleCode } from './role-portal-access'
+import { findUserByEmailOrUsername } from './user-lookup'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
@@ -18,28 +18,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     CredentialsProvider({
       name: 'credentials',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        email: { label: 'Email or username', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email and password are required')
+          throw new Error('Email or username and password are required')
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email as string },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            password: true,
-            role: true,
-            subjectId: true,
-          },
-        })
+        const user = await findUserByEmailOrUsername(credentials.email as string)
 
         if (!user) {
-          throw new Error('No user found with this email')
+          throw new Error('No user found with this email or username')
         }
 
         const passwordMatch = await compare(
@@ -59,13 +49,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           name: user.name,
           role: user.role,
           subjectId: user.subjectId,
+          mustChangePassword: user.mustChangePassword,
           ...portals,
         }
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id
         token.role = user.role
@@ -73,7 +64,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.canAccessAdmin = user.canAccessAdmin ?? false
         token.canAccessTeacher = user.canAccessTeacher ?? false
         token.canAccessStudent = user.canAccessStudent ?? false
+        token.mustChangePassword = user.mustChangePassword ?? false
       }
+
+      if (trigger === 'update' && session?.mustChangePassword === false) {
+        token.mustChangePassword = false
+      }
+
       return token
     },
     async session({ session, token }) {
@@ -84,6 +81,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.canAccessAdmin = Boolean(token.canAccessAdmin)
         session.user.canAccessTeacher = Boolean(token.canAccessTeacher)
         session.user.canAccessStudent = Boolean(token.canAccessStudent)
+        session.user.mustChangePassword = Boolean(token.mustChangePassword)
       }
       return session
     },

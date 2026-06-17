@@ -39,7 +39,12 @@ model User {
   id          String   @id @default(cuid())
   name        String
   email       String   @unique
+  /// Unique sign-in name for students; optional for other roles.
+  username    String?  @unique
   password    String
+  /// When true, user must set a new password before using the portal.
+  mustChangePassword Boolean @default(false)
+  passwordChangedAt  DateTime?
   /// Stored role code; must match an existing `RoleDefinition.code`.
   role        String   @default("STUDENT")
   createdAt   DateTime @default(now())
@@ -50,6 +55,8 @@ model User {
   /// Educators are assigned to one subject catalog entry.
   subjectId   String?
   subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  /// Public URL path e.g. /uploads/avatars/{id}.jpg
+  avatarUrl   String?
   sessions                 ExperimentSession[]
   quizAttempts             QuizAttempt[]
   reports                  Report[]

@@ -16,24 +16,34 @@ async function main() {
   // Create Admin
   const admin = await prisma.user.upsert({
     where: { email: 'admin@vrsps.ug' },
-    update: {},
+    update: {
+      username: 'admin',
+      mustChangePassword: true,
+    },
     create: {
       name: 'System Admin',
       email: 'admin@vrsps.ug',
+      username: 'admin',
       password: adminPassword,
       role: 'ADMIN',
+      mustChangePassword: true,
     },
   })
 
   // Create Student
   const student = await prisma.user.upsert({
     where: { email: 'student@vrsps.ug' },
-    update: {},
+    update: {
+      username: 'jstudent',
+      mustChangePassword: true,
+    },
     create: {
       name: 'Jane Student',
       email: 'student@vrsps.ug',
+      username: 'jstudent',
       password: studentPassword,
       role: 'STUDENT',
+      mustChangePassword: true,
       createdById: admin.id,
     },
   })
@@ -261,9 +271,9 @@ async function main() {
   })
 
   console.log('✅ Database seeded successfully!')
-  console.log('Admin: admin@vrsps.ug / Admin@1234')
+  console.log('Admin: admin@vrsps.ug or username admin / Admin@1234 (change on first login)')
   console.log('Teacher: teacher@vrsps.ug / Teacher@1234')
-  console.log('Student: student@vrsps.ug / Student@1234')
+  console.log('Student: student@vrsps.ug or username jstudent / Student@1234 (change on first login)')
 
   await prisma.roleDefinition.upsert({
     where: { code: 'ADMIN' },

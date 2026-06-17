@@ -4,6 +4,7 @@ import { requireRegisterStudentsAccess, STUDENT_ROLE_CODE } from '@/lib/api-auth
 import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { requireRoleDefinitionCode } from '@/lib/user-role-code'
+import { normalizeUsername, validateUsername } from '@/lib/password-policy'
 
 export async function GET() {
   try {
@@ -19,6 +20,7 @@ export async function GET() {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         createdAt: true,
         _count: { select: { sessions: true } },
@@ -40,11 +42,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
-    const { name, email, password } = await req.json()
+    const { name, email, password, username: usernameRaw } = await req.json()
 
-    if (!name || !email || !password) {
-      return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 })
+    if (!name || !email || !password || !usernameRaw) {
+      return NextResponse.json(
+        { error: 'Name, email, username, and password are required' },
+        { status: 400 }
+      )
     }
+
+    const usernameError = validateUsername(String(usernameRaw))
+    if (usernameError) {
+      return NextResponse.json({ error: usernameError }, { status: 400 })
+    }
+    const username = normalizeUsername(String(usernameRaw))
 
     const roleDef = await requireRoleDefinitionCode(STUDENT_ROLE_CODE)
     if (!roleDef) {
@@ -59,13 +70,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 })
     }
 
+    const existingUsername = await prisma.user.findUnique({ where: { username } })
+    if (existingUsername) {
+      return NextResponse.json({ error: 'Username already exists' }, { status: 400 })
+    }
+
     const hashedPassword = await hash(password, 12)
 
     const user = await prisma.user.create({
       data: {
         name: String(name).trim(),
         email: String(email).trim().toLowerCase(),
+        username,
         password: hashedPassword,
+        mustChangePassword: true,
         role: STUDENT_ROLE_CODE,
         createdById: session!.user!.id,
       },
@@ -75,6 +93,7 @@ export async function POST(req: NextRequest) {
       id: user.id,
       name: user.name,
       email: user.email,
+      username: user.username,
       role: user.role,
       createdAt: user.createdAt.toISOString(),
       _count: { sessions: 0 },

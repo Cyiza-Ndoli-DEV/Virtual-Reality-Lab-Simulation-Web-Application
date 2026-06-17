@@ -14,6 +14,7 @@ export type AdminHeaderUser = {
   name?: string | null
   email?: string | null
   role?: string
+  avatarUrl?: string | null
   canAccessAdmin?: boolean
   canAccessTeacher?: boolean
   canAccessStudent?: boolean

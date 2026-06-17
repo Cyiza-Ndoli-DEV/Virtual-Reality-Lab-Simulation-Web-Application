@@ -5,6 +5,8 @@ import prisma from '@/lib/prisma'
 import { hash } from 'bcryptjs'
 import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
 import { TEACHER_ROLE_CODE, validateSubjectId } from '@/lib/teacher-subject'
+import { normalizeUsername, validateUsername } from '@/lib/password-policy'
+import { STUDENT_ROLE_CODE } from '@/lib/api-auth'
 import type { Prisma } from '@prisma/client'
 
 const DEFAULT_PAGE_SIZE = 10
@@ -15,6 +17,7 @@ function userListSelect() {
     id: true,
     name: true,
     email: true,
+    username: true,
     role: true,
     subjectId: true,
     subject: { select: { id: true, code: true, name: true } },
@@ -34,6 +37,7 @@ function buildWhere(
     where.OR = [
       { name: { contains: q } },
       { email: { contains: q } },
+      { username: { contains: q } },
     ]
   }
   return where
@@ -99,6 +103,8 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const { name, email, password, role } = body
+    const usernameRaw =
+      typeof body.username === 'string' ? body.username.trim() : ''
     const subjectIdRaw =
       typeof body.subjectId === 'string' ? body.subjectId.trim() : ''
 
@@ -110,6 +116,16 @@ export async function POST(req: NextRequest) {
     if (!roleCode) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
+
+    let username: string | null = null
+    if (roleCode === STUDENT_ROLE_CODE) {
+      const usernameError = validateUsername(usernameRaw)
+      if (usernameError) {
+        return NextResponse.json({ error: usernameError }, { status: 400 })
+      }
+      username = normalizeUsername(usernameRaw)
+    }
+
     const roleDef = await requireRoleDefinitionCode(roleCode)
     if (!roleDef) {
       return NextResponse.json(
@@ -138,13 +154,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 })
     }
 
+    if (username) {
+      const existingUsername = await prisma.user.findUnique({ where: { username } })
+      if (existingUsername) {
+        return NextResponse.json({ error: 'Username already exists' }, { status: 400 })
+      }
+    }
+
     const hashedPassword = await hash(password, 12)
 
     const user = await prisma.user.create({
       data: {
         name,
         email,
+        username,
         password: hashedPassword,
+        mustChangePassword: true,
         role: roleCode,
         subjectId,
         createdById: access.session.user.id,
@@ -153,6 +178,7 @@ export async function POST(req: NextRequest) {
         id: true,
         name: true,
         email: true,
+        username: true,
         role: true,
         subjectId: true,
         subject: { select: { id: true, code: true, name: true } },

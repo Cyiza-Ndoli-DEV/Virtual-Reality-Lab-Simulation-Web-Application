@@ -26,6 +26,7 @@ export default async function AdminLayout({
         name: me.name,
         email: me.email,
         role: me.role,
+        avatarUrl: me.avatarUrl,
         canAccessAdmin: session.user.canAccessAdmin,
         canAccessTeacher: session.user.canAccessTeacher,
         canAccessStudent: session.user.canAccessStudent,
