@@ -48,6 +48,7 @@ interface UserRow {
   id: string
   name: string
   email: string
+  username?: string | null
   /** Matches `RoleDefinition.code`. */
   role: string
   subjectId?: string | null
@@ -151,6 +152,7 @@ export default function AdminUsersPage() {
   const [inviteOpen, setInviteOpen] = useState(false)
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteUsername, setInviteUsername] = useState('')
   const [invitePassword, setInvitePassword] = useState('')
   const [inviteRole, setInviteRole] = useState('STUDENT')
   const [inviteSubjectId, setInviteSubjectId] = useState('')
@@ -330,6 +332,10 @@ export default function AdminUsersPage() {
       setInviteError('Select a subject for this educator')
       return
     }
+    if (inviteRole === 'STUDENT' && !inviteUsername.trim()) {
+      setInviteError('Username is required for student accounts')
+      return
+    }
     setInviteBusy(true)
     try {
       const res = await fetch('/api/admin/users', {
@@ -340,6 +346,7 @@ export default function AdminUsersPage() {
           email: inviteEmail,
           password: invitePassword,
           role: inviteRole,
+          ...(inviteRole === 'STUDENT' ? { username: inviteUsername } : {}),
           ...(inviteRole === 'TEACHER' ? { subjectId: inviteSubjectId } : {}),
         }),
       })
@@ -351,6 +358,7 @@ export default function AdminUsersPage() {
       setInviteOpen(false)
       setInviteName('')
       setInviteEmail('')
+      setInviteUsername('')
       setInvitePassword('')
       setInviteRole(
         (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])?.code ??
@@ -558,6 +566,7 @@ export default function AdminUsersPage() {
                 setInviteError('')
                 setInviteName('')
                 setInviteEmail('')
+                setInviteUsername('')
                 setInvitePassword('')
                 setInviteSubjectId('')
                 setInviteRole(
@@ -584,6 +593,7 @@ export default function AdminUsersPage() {
                   <TableHead className="font-semibold text-slate-600">
                     Email address
                   </TableHead>
+                  <TableHead className="font-semibold text-slate-600">Username</TableHead>
                   <TableHead className="font-semibold text-slate-600">Role</TableHead>
                   <TableHead className="font-semibold text-slate-600">Subject</TableHead>
                   <TableHead className="font-semibold text-slate-600">Status</TableHead>
@@ -598,7 +608,7 @@ export default function AdminUsersPage() {
               <TableBody>
                 {pageSlice.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-slate-500">
+                    <TableCell colSpan={8} className="py-12 text-center text-slate-500">
                       {loading ? 'Loading users…' : 'No users match your filters.'}
                     </TableCell>
                   </TableRow>
@@ -627,6 +637,9 @@ export default function AdminUsersPage() {
                       </TableCell>
                       <TableCell className="max-w-[220px] truncate text-slate-600">
                         {u.email}
+                      </TableCell>
+                      <TableCell className="font-mono text-sm text-slate-600">
+                        {u.username ?? '—'}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -962,9 +975,9 @@ export default function AdminUsersPage() {
       <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
         <DialogContent className="max-w-md sm:max-w-md" showCloseButton>
           <DialogHeader>
-            <DialogTitle>Invite user</DialogTitle>
+            <DialogTitle>Add user</DialogTitle>
             <DialogDescription>
-              Create an account with a temporary password the user can change later.
+              Create an account with a temporary password. The user must change it on first sign-in.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -991,6 +1004,22 @@ export default function AdminUsersPage() {
                 className="h-10"
               />
             </div>
+            {inviteRole === 'STUDENT' ? (
+              <div className="grid gap-1.5">
+                <Label htmlFor="invite-username">Username</Label>
+                <Input
+                  id="invite-username"
+                  value={inviteUsername}
+                  onChange={(e) => setInviteUsername(e.target.value)}
+                  placeholder="e.g. jstudent"
+                  autoComplete="off"
+                  className="h-10 font-mono"
+                />
+                <p className="text-xs text-slate-500">
+                  Unique sign-in name for the student (letters, numbers, hyphens, underscores).
+                </p>
+              </div>
+            ) : null}
             <div className="grid gap-1.5">
               <Label htmlFor="invite-pass">Temporary password</Label>
               <Input
@@ -1011,6 +1040,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => {
                   setInviteRole(e.target.value)
                   if (e.target.value !== 'TEACHER') setInviteSubjectId('')
+                  if (e.target.value !== 'STUDENT') setInviteUsername('')
                 }}
                 className="h-10 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
               >

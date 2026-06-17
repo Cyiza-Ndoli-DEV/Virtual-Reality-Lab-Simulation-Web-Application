@@ -6,6 +6,7 @@ import {
   portalRoleLabel,
   useAdminAppHeader,
 } from '@/components/admin/admin-app-header-context'
+import { displayAvatarUrl } from '@/lib/user-avatar'
 
 export function AdminAppHeader() {
   const {
@@ -22,7 +23,7 @@ export function AdminAppHeader() {
       ? user?.name || 'System Admin'
       : user?.name || 'Admin User'
   const roleLine = portalRoleLabel(user)
-  const avatarSeed = encodeURIComponent(user?.email || user?.name || 'user')
+  const avatarSrc = displayAvatarUrl(user?.avatarUrl, user?.email, user?.name)
 
   return (
     <header className="z-[35] shrink-0 border-b border-slate-200/90 bg-white/95 backdrop-blur-md">
@@ -60,7 +61,7 @@ export function AdminAppHeader() {
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`}
+                src={avatarSrc}
                 alt=""
                 className="h-full w-full object-cover"
               />

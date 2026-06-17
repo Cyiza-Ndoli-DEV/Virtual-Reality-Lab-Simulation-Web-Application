@@ -9,6 +9,7 @@ declare module 'next-auth/jwt' {
     canAccessAdmin?: boolean
     canAccessTeacher?: boolean
     canAccessStudent?: boolean
+    mustChangePassword?: boolean
   }
 }
 
@@ -19,6 +20,7 @@ declare module 'next-auth' {
     canAccessAdmin?: boolean
     canAccessTeacher?: boolean
     canAccessStudent?: boolean
+    mustChangePassword?: boolean
   }
 
   interface Session {
@@ -29,6 +31,7 @@ declare module 'next-auth' {
       canAccessAdmin: boolean
       canAccessTeacher: boolean
       canAccessStudent: boolean
+      mustChangePassword: boolean
     } & DefaultSession['user']
   }
 }

@@ -8,6 +8,7 @@ export type AdminMeData = {
   name: string
   email: string
   role: string
+  avatarUrl: string | null
   createdAt: string
   updatedAt: string
   portalLabel: string
@@ -22,6 +23,7 @@ export async function getAdminMeData(userId: string): Promise<AdminMeData | null
       name: true,
       email: true,
       role: true,
+      avatarUrl: true,
       createdAt: true,
       updatedAt: true,
     },

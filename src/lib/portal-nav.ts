@@ -23,7 +23,7 @@ export type PortalNavItem = {
 
 export const portalNavItems: PortalNavItem[] = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: LayoutDashboard, feature: 'admin.portal' },
-  { label: 'Users', href: '/admin/users', icon: Users, feature: 'admin.users' },
+  { label: 'User Management', href: '/admin/users', icon: Users, feature: 'admin.users' },
   {
     label: 'Students',
     href: '/admin/students',
@@ -45,7 +45,7 @@ export type PortalSettingsItem = {
 }
 
 export const portalSettingsItems: PortalSettingsItem[] = [
-  { label: 'Profile', href: '/admin/profile', icon: User, feature: 'admin.portal' },
+  { label: 'Account', href: '/admin/profile', icon: User, feature: 'admin.portal' },
   { label: 'Roles', href: '/admin/settings/roles', icon: Shield, feature: 'admin.settings', adminOnly: true },
   { label: 'Subjects', href: '/admin/settings/subjects', icon: BookMarked, feature: 'admin.settings' },
 ]

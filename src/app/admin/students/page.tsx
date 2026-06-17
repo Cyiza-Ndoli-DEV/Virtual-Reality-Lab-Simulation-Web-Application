@@ -28,6 +28,7 @@ interface StudentRow {
   id: string
   name: string
   email: string
+  username?: string | null
   role: string
   createdAt: string
   _count: { sessions: number }
@@ -60,6 +61,7 @@ export default function AdminStudentsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [addName, setAddName] = useState('')
   const [addEmail, setAddEmail] = useState('')
+  const [addUsername, setAddUsername] = useState('')
   const [addPassword, setAddPassword] = useState('')
   const [addBusy, setAddBusy] = useState(false)
   const [addError, setAddError] = useState('')
@@ -97,7 +99,9 @@ export default function AdminStudentsPage() {
     if (!q) return students
     return students.filter(
       (s) =>
-        s.name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q)
+        s.name.toLowerCase().includes(q) ||
+        s.email.toLowerCase().includes(q) ||
+        (s.username?.toLowerCase().includes(q) ?? false)
     )
   }, [students, search])
 
@@ -111,6 +115,7 @@ export default function AdminStudentsPage() {
         body: JSON.stringify({
           name: addName,
           email: addEmail,
+          username: addUsername,
           password: addPassword,
         }),
       })
@@ -122,6 +127,7 @@ export default function AdminStudentsPage() {
       setAddOpen(false)
       setAddName('')
       setAddEmail('')
+      setAddUsername('')
       setAddPassword('')
       await load()
     } finally {
@@ -155,6 +161,7 @@ export default function AdminStudentsPage() {
     setAddError('')
     setAddName('')
     setAddEmail('')
+    setAddUsername('')
     setAddPassword('')
     setAddOpen(true)
   }
@@ -164,6 +171,7 @@ export default function AdminStudentsPage() {
     if (!open) {
       setAddName('')
       setAddEmail('')
+      setAddUsername('')
       setAddPassword('')
       setAddError('')
     }
@@ -224,6 +232,7 @@ export default function AdminStudentsPage() {
             <TableRow className="border-slate-200 bg-slate-50/90 hover:bg-slate-50/90">
               <TableHead className="pl-6 font-semibold text-slate-600">Student</TableHead>
               <TableHead className="font-semibold text-slate-600">Email</TableHead>
+              <TableHead className="font-semibold text-slate-600">Username</TableHead>
               <TableHead className="font-semibold text-slate-600">Lab sessions</TableHead>
               <TableHead className="font-semibold text-slate-600">Registered</TableHead>
               <TableHead className="pr-6 text-right font-semibold text-slate-600">
@@ -234,13 +243,13 @@ export default function AdminStudentsPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-slate-500">
+                <TableCell colSpan={6} className="py-12 text-center text-slate-500">
                   Loading students…
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-12 text-center text-slate-500">
+                <TableCell colSpan={6} className="py-12 text-center text-slate-500">
                   No students found. Register your first student to get started.
                 </TableCell>
               </TableRow>
@@ -264,6 +273,9 @@ export default function AdminStudentsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-slate-600">{s.email}</TableCell>
+                  <TableCell className="font-mono text-sm text-slate-600">
+                    {s.username ?? '—'}
+                  </TableCell>
                   <TableCell className="text-slate-600">{s._count.sessions}</TableCell>
                   <TableCell className="text-slate-600">
                     {formatDate(s.createdAt)}
@@ -315,7 +327,8 @@ export default function AdminStudentsPage() {
               Register student
             </DialogTitle>
             <DialogDescription>
-              Creates a student account. Share the temporary password with the learner.
+              Creates a student account with a unique username and temporary password. The student
+              must change the password on first sign-in.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -340,6 +353,17 @@ export default function AdminStudentsPage() {
                 placeholder="e.g. student@school.ug"
                 autoComplete="off"
                 className="h-10"
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="stu-username">Username</Label>
+              <Input
+                id="stu-username"
+                value={addUsername}
+                onChange={(e) => setAddUsername(e.target.value)}
+                placeholder="e.g. jstudent"
+                autoComplete="off"
+                className="h-10 font-mono"
               />
             </div>
             <div className="grid gap-1.5">

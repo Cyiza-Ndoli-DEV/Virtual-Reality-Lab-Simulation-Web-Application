@@ -9,6 +9,7 @@ import {
   type AdminHeaderUser,
 } from '@/components/admin/admin-app-header-context'
 import { SessionGuard } from '@/components/session-guard'
+import { ChangePasswordProvider } from '@/components/account/change-password-provider'
 import { clientLogout } from '@/lib/client-logout'
 import type { PermissionMap } from '@/lib/portal-permissions'
 import {
@@ -52,6 +53,7 @@ export default function AdminLayoutClient({
 
   return (
     <SessionGuard require="admin">
+      <ChangePasswordProvider portalHome="/admin/dashboard">
       <AdminAppHeaderProvider
       sessionUser={sessionUser}
       openMobileSidebar={openMobileSidebar}
@@ -175,6 +177,7 @@ export default function AdminLayoutClient({
         </div>
       </div>
     </AdminAppHeaderProvider>
+      </ChangePasswordProvider>
     </SessionGuard>
   )
 }

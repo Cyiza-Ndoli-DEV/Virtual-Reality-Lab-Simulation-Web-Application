@@ -83,7 +83,7 @@ function LoginForm() {
         setError(
           result.error === 'MissingCSRF'
             ? 'Session expired. Refresh the page and try again.'
-            : 'Invalid email or password'
+            : 'Invalid email, username, or password'
         )
         return
       }
@@ -222,12 +222,12 @@ function LoginForm() {
 
               <div>
                 <label className="mb-2 block text-sm font-medium text-slate-700">
-                  Email Address
+                  Email or username
                 </label>
 
                 <input
-                  type="email"
-                  placeholder="you@school.edu"
+                  type="text"
+                  placeholder="you@school.edu or username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

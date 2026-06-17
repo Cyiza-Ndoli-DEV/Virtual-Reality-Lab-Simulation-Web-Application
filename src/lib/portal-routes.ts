@@ -2,13 +2,33 @@ import type { Session } from 'next-auth'
 
 type PortalUser = Session['user'] | undefined
 
-/** Default dashboard after sign-in for this user. */
-export function defaultPortalPath(user: PortalUser): string | null {
+/** Default dashboard for this user (ignores password-change state). */
+export function portalHomePath(user: PortalUser): string | null {
   if (!user?.id) return null
   if (user.canAccessAdmin) return '/admin/dashboard'
   if (user.canAccessTeacher) return '/admin/student-work'
   if (user.canAccessStudent) return '/student/dashboard'
   return null
+}
+
+export function isChangePasswordPage(pathname: string): boolean {
+  return (
+    pathname === '/admin/account/change-password' ||
+    pathname === '/student/account/change-password'
+  )
+}
+
+export function isPasswordChangeApiPath(pathname: string): boolean {
+  return pathname === '/api/account/password'
+}
+
+export function isAvatarApiPath(pathname: string): boolean {
+  return pathname === '/api/account/avatar'
+}
+
+/** Default destination after sign-in. */
+export function defaultPortalPath(user: PortalUser): string | null {
+  return portalHomePath(user)
 }
 
 export function isAuthApiPath(pathname: string): boolean {
