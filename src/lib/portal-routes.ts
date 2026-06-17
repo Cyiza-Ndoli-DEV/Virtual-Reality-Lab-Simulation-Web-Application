@@ -48,12 +48,14 @@ export function isProtectedApiPath(pathname: string): boolean {
 }
 
 export function isPublicPagePath(pathname: string): boolean {
-  return pathname === '/login'
+  return pathname === '/login' || pathname.startsWith('/login/')
 }
 
 /** Relative in-app path only (blocks open redirects). */
 export function safeCallbackUrl(raw: string | null | undefined): string | null {
   if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return null
-  if (raw === '/login' || raw.startsWith('/login?')) return null
+  if (raw === '/login' || raw.startsWith('/login?') || raw.startsWith('/login/')) {
+    return null
+  }
   return raw
 }
