@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Suspense, useEffect, useState } from 'react'
-import { signIn, useSession } from 'next-auth/react'
+import { getCsrfToken, signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, FlaskConical, GraduationCap, Atom } from 'lucide-react'
 import { defaultPortalPath, safeCallbackUrl } from '@/lib/portal-routes'
@@ -30,7 +30,6 @@ function LoginForm() {
   const searchParams = useSearchParams()
   const callbackUrl = safeCallbackUrl(searchParams.get('callbackUrl'))
   const justSignedOut = searchParams.get('signedOut') === '1'
-  const { status } = useSession()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,33 +38,53 @@ function LoginForm() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (status !== 'unauthenticated' && !justSignedOut) return
+    if (!justSignedOut) return
     setEmail('')
     setPassword('')
     setShowPassword(false)
     setError('')
-  }, [status, justSignedOut])
-
-  useEffect(() => {
-    if (!justSignedOut) return
     router.replace('/login', { scroll: false })
   }, [justSignedOut, router])
 
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault()
+  useEffect(() => {
+    const hasCredsInUrl =
+      searchParams.has('email') || searchParams.has('password')
+    if (!hasCredsInUrl) return
+
+    const emailFromUrl = searchParams.get('email')
+    if (emailFromUrl) setEmail(emailFromUrl)
+
+    const clean = new URL(window.location.href)
+    clean.searchParams.delete('email')
+    clean.searchParams.delete('password')
+    window.history.replaceState(null, '', `${clean.pathname}${clean.search}`)
+  }, [searchParams])
+
+  async function handleLogin() {
+    if (loading) return
     setLoading(true)
     setError('')
 
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        setError('Sign-in could not start. Refresh the page and try again.')
+        return
+      }
+
       const result = await signIn('credentials', {
         email,
         password,
+        csrfToken,
         redirect: false,
       })
 
       if (result?.error) {
-        setError('Invalid email or password')
-        setLoading(false)
+        setError(
+          result.error === 'MissingCSRF'
+            ? 'Session expired. Refresh the page and try again.'
+            : 'Invalid email or password'
+        )
         return
       }
 
@@ -193,7 +212,10 @@ function LoginForm() {
 
             <form
               key={justSignedOut ? 'signed-out' : 'login'}
-              onSubmit={handleLogin}
+              onSubmit={(e) => {
+                e.preventDefault()
+                void handleLogin()
+              }}
               className="space-y-5"
               autoComplete="off"
             >
@@ -205,7 +227,6 @@ function LoginForm() {
 
                 <input
                   type="email"
-                  name="email"
                   placeholder="you@school.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -223,7 +244,6 @@ function LoginForm() {
                 <div className="relative">
                   <input
                     type={showPassword ? 'text' : 'password'}
-                    name="password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
