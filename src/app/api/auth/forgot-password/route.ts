@@ -16,7 +16,27 @@ export async function POST(req: NextRequest) {
     await requestPasswordReset(email)
 
     return NextResponse.json({ message: GENERIC_MESSAGE })
-  } catch {
+  } catch (error) {
+    console.error('[forgot-password]', error)
+
+    const message =
+      error instanceof Error ? error.message : 'Internal server error'
+    const missingTable =
+      message.includes('PasswordResetToken') ||
+      message.includes("doesn't exist") ||
+      message.includes('does not exist')
+
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json(
+        {
+          error: missingTable
+            ? 'Password reset table is missing. Run: npx prisma migrate deploy'
+            : message,
+        },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
