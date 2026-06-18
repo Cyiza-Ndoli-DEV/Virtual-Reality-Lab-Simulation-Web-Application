@@ -47,10 +47,16 @@ export async function requestPasswordReset(email: string): Promise<void> {
       <p>We received a request to reset your VRSPS password.</p>
       <p><a href="${resetUrl}">Reset your password</a></p>
       <p>This link expires in one hour. If you did not request this, you can ignore this email.</p>
+      <p style="color:#64748b;font-size:12px">Or copy this link: ${resetUrl}</p>
     `,
   })
 
-  if (!sent && process.env.NODE_ENV !== 'development') {
+  if (!sent) {
+    if (process.env.NODE_ENV === 'development') {
+      throw new Error(
+        'Failed to send reset email. Check GMAIL_USER and GMAIL_APP_PASSWORD in .env (16-character Google App Password). Test with: npm run test:email -- your@email.com'
+      )
+    }
     await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } })
   }
 }

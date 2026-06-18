@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "ts-node prisma/seed.ts",
+    "reset-password": "ts-node scripts/reset-user-password.ts",
     "test:email": "ts-node scripts/test-gmail-email.ts"
   },
   "dependencies": {
