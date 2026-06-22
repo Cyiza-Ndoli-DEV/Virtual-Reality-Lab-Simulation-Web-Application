@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import { CheckCircle2, Clock, Star } from 'lucide-react'
 import { formatDuration } from '@/lib/student-lab-status'
 
@@ -10,59 +11,119 @@ export interface DashboardStats {
   topPercentileLabel: string | null
 }
 
-export function StatsBar({ stats }: { stats: DashboardStats }) {
+function StatCard({
+  icon,
+  iconClassName,
+  label,
+  children,
+  compact,
+}: {
+  icon: ReactNode
+  iconClassName: string
+  label: string
+  children: ReactNode
+  compact?: boolean
+}) {
   return (
-    <div className="mb-8 grid gap-4 sm:grid-cols-3">
-      <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-          <CheckCircle2 className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Completed Practicals
-          </p>
-          <p className="text-2xl font-semibold text-slate-900">
-            {stats.completedPracticals}
-          </p>
-        </div>
+    <div
+      className={
+        compact
+          ? 'flex items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 shadow-sm'
+          : 'flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm'
+      }
+    >
+      <div
+        className={
+          compact
+            ? `flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${iconClassName}`
+            : `flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconClassName}`
+        }
+      >
+        {icon}
       </div>
+      <div className="min-w-0">
+        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-xs">
+          {label}
+        </p>
+        {children}
+      </div>
+    </div>
+  )
+}
 
-      <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-          <Clock className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Time in VR
-          </p>
-          <p className="text-2xl font-semibold text-slate-900">
-            {formatDuration(stats.timeInVRSeconds)}
-          </p>
-        </div>
-      </div>
+export function StatsBar({
+  stats,
+  layout = 'row',
+}: {
+  stats: DashboardStats
+  layout?: 'row' | 'stack'
+}) {
+  const containerClass =
+    layout === 'stack'
+      ? 'flex flex-col gap-3'
+      : 'grid gap-3 sm:grid-cols-3 sm:gap-4'
 
-      <div className="flex items-center gap-4 rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-sm">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-          <Star className="h-5 w-5" />
-        </div>
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-            Average Grade
+  return (
+    <div className={containerClass}>
+      <StatCard
+        icon={<CheckCircle2 className={layout === 'stack' ? 'h-4 w-4' : 'h-5 w-5'} />}
+        iconClassName="bg-blue-50 text-blue-600"
+        label="Completed Practicals"
+        compact={layout === 'stack'}
+      >
+        <p
+          className={
+            layout === 'stack'
+              ? 'text-xl font-semibold text-slate-900'
+              : 'text-2xl font-semibold text-slate-900'
+          }
+        >
+          {stats.completedPracticals}
+        </p>
+      </StatCard>
+
+      <StatCard
+        icon={<Clock className={layout === 'stack' ? 'h-4 w-4' : 'h-5 w-5'} />}
+        iconClassName="bg-blue-50 text-blue-600"
+        label="Time in VR"
+        compact={layout === 'stack'}
+      >
+        <p
+          className={
+            layout === 'stack'
+              ? 'text-xl font-semibold text-slate-900'
+              : 'text-2xl font-semibold text-slate-900'
+          }
+        >
+          {formatDuration(stats.timeInVRSeconds)}
+        </p>
+      </StatCard>
+
+      <StatCard
+        icon={<Star className={layout === 'stack' ? 'h-4 w-4' : 'h-5 w-5'} />}
+        iconClassName="bg-emerald-50 text-emerald-600"
+        label="Average Grade"
+        compact={layout === 'stack'}
+      >
+        <div className="flex flex-wrap items-baseline gap-2">
+          <p
+            className={
+              layout === 'stack'
+                ? 'text-xl font-semibold text-slate-900'
+                : 'text-2xl font-semibold text-slate-900'
+            }
+          >
+            {stats.averageGradePercent !== null
+              ? `${stats.averageGradePercent}%`
+              : '—'}
           </p>
-          <div className="flex flex-wrap items-baseline gap-2">
-            <p className="text-2xl font-semibold text-slate-900">
-              {stats.averageGradePercent !== null
-                ? `${stats.averageGradePercent}%`
-                : '—'}
-            </p>
-            {stats.topPercentileLabel ? (
-              <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
-                {stats.topPercentileLabel}
-              </span>
-            ) : null}
-          </div>
+          {stats.topPercentileLabel ? (
+            <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+              {stats.topPercentileLabel}
+            </span>
+          ) : null}
         </div>
-      </div>
+      </StatCard>
     </div>
   )
 }

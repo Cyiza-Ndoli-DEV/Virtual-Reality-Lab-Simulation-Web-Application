@@ -10,5 +10,10 @@ export default async function StudentDashboard() {
   }
 
   const data = await getStudentExperiments(session.user.id)
-  return <StudentDashboardClient initialData={data} />
+  return (
+    <StudentDashboardClient
+      initialData={data}
+      userName={session.user.name ?? null}
+    />
+  )
 }

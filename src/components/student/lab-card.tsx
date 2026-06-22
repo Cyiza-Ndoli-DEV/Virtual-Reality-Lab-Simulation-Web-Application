@@ -64,7 +64,13 @@ function formatUnlockDate(iso: string) {
   }
 }
 
-export function LabCard({ lab }: { lab: LabCardData }) {
+export function LabCard({
+  lab,
+  fillHeight = false,
+}: {
+  lab: LabCardData
+  fillHeight?: boolean
+}) {
   const isLocked = lab.status === 'locked'
   const isActive = lab.status === 'active'
   const labHref = `/student/experiments/${lab.id}`
@@ -73,6 +79,7 @@ export function LabCard({ lab }: { lab: LabCardData }) {
     <article
       className={cn(
         'relative rounded-2xl border bg-white p-5 shadow-sm',
+        fillHeight && 'flex h-full w-full flex-col',
         isActive && 'border-2 border-blue-600 shadow-md',
         isLocked && 'border-slate-200 opacity-75',
         !isActive && !isLocked && 'border-slate-200'
@@ -84,8 +91,15 @@ export function LabCard({ lab }: { lab: LabCardData }) {
         </span>
       ) : null}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 gap-4">
+      <div
+        className={cn(
+          'flex gap-4',
+          fillHeight
+            ? 'flex-1 flex-col'
+            : 'flex-col sm:flex-row sm:items-start sm:justify-between'
+        )}
+      >
+        <div className={cn('flex min-w-0 gap-4', fillHeight ? 'flex-1 flex-col' : 'flex-1')}>
           {isLocked ? (
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
               <Lock className="h-6 w-6" />
@@ -153,7 +167,12 @@ export function LabCard({ lab }: { lab: LabCardData }) {
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center sm:pt-1">
+        <div
+          className={cn(
+            'flex shrink-0 items-center',
+            fillHeight ? 'mt-auto pt-2' : 'sm:pt-1'
+          )}
+        >
           {isLocked ? null : (
             <Button
               asChild

@@ -83,12 +83,12 @@ export default function StudentLayoutClient({
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-8">
-        <div className="mx-auto max-w-6xl">{children}</div>
+      <main className="flex flex-1 flex-col px-6 py-8">
+        <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col">{children}</div>
       </main>
 
       <footer className="mt-auto border-t border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-8 sm:flex-row sm:items-start sm:justify-between">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-bold text-slate-900">VRSPS</p>
             <p className="mt-2 max-w-sm text-xs leading-relaxed text-slate-500">
