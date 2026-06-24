@@ -231,6 +231,32 @@ Content-Type: application/json
 }
 ```
 
+The start endpoint validates that both `studentId` and `experimentId` are present, confirms the student exists, and creates a new `ExperimentSession` record with a `startedAt` timestamp.
+
+**Example — End Session:**
+```http
+POST /api/unity/session/end
+X-API-KEY: your-unity-api-key-here
+Content-Type: application/json
+
+{
+  "sessionId": "clx456def",
+  "timeTaken": 900,
+  "wrongSteps": 2,
+  "passed": true
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Session ended successfully"
+}
+```
+
+The end endpoint requires a `sessionId` and updates the existing session with the final metrics (`timeTaken`, `wrongSteps`, `passed`) and a `completedAt` timestamp.
+
 ---
 
 ## 👥 User Roles & Access
