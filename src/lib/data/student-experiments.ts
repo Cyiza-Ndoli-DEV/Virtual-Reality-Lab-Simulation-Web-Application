@@ -4,6 +4,9 @@ import {
   type LabWorkflowStatus,
 } from '@/lib/lab-workflow-status'
 import {
+  loadStudentExperimentGradeBreakdown,
+} from '@/lib/experiment-grading'
+import {
   percentToGradeLabel,
   sessionProgressPercent,
   type LabStatus,
@@ -34,59 +37,10 @@ export type StudentExperimentsPayload = {
   experiments: StudentLabData[]
 }
 
-type QuizGrade = {
-  gradePercent: number | null
-  gradeLabel: string | null
-}
-
-/** Best-effort quiz grades; returns empty when the quiz schema is not migrated yet. */
-async function loadQuizGradesByExperiment(
-  studentId: string
-): Promise<Map<string, QuizGrade>> {
-  const grades = new Map<string, QuizGrade>()
-  try {
-    const quizzes = await prisma.quiz.findMany({
-      where: { isPublished: true },
-      select: {
-        experimentId: true,
-        attempts: {
-          where: { studentId },
-          orderBy: { attemptedAt: 'desc' },
-          take: 1,
-          select: { score: true, totalPoints: true, percentage: true },
-        },
-      },
-    })
-
-    for (const quiz of quizzes) {
-      if (grades.has(quiz.experimentId)) continue
-      const attempt = quiz.attempts[0]
-      if (!attempt) continue
-
-      const gradePercent =
-        attempt.percentage ??
-        (attempt.totalPoints > 0
-          ? Math.round((attempt.score / attempt.totalPoints) * 100)
-          : null)
-      grades.set(quiz.experimentId, {
-        gradePercent,
-        gradeLabel:
-          gradePercent !== null ? percentToGradeLabel(gradePercent) : null,
-      })
-    }
-  } catch (error) {
-    console.error(
-      '[getStudentExperiments] Quiz grades unavailable:',
-      error instanceof Error ? error.message : error
-    )
-  }
-  return grades
-}
-
 export async function getStudentExperiments(
   studentId: string
 ): Promise<StudentExperimentsPayload> {
-  const [experiments, sessions, submissions, quizGrades] = await Promise.all([
+  const [experiments, sessions, submissions] = await Promise.all([
     prisma.experiment.findMany({
       orderBy: { title: 'asc' },
       include: {
@@ -114,8 +68,15 @@ export async function getStudentExperiments(
         reviewStatus: true,
       },
     }),
-    loadQuizGradesByExperiment(studentId),
   ])
+
+  const finalGrades = await Promise.all(
+    experiments.map((experiment) =>
+      loadStudentExperimentGradeBreakdown(studentId, experiment.id).catch(
+        () => null
+      )
+    )
+  )
 
   const sessionsByExperiment = new Map<string, typeof sessions>()
   for (const s of sessions) {
@@ -138,7 +99,7 @@ export async function getStudentExperiments(
   let completedPracticals = 0
   const gradePercents: number[] = []
 
-  const labs = experiments.map((e) => {
+  const labs = experiments.map((e, index) => {
     const hasQuestionnaire = Boolean(e.questionnaire)
     const qId = e.questionnaire?.id
     const sub = qId ? submissionByQuestionnaire.get(qId) : undefined
@@ -158,9 +119,13 @@ export async function getStudentExperiments(
       totalTimeSeconds += latestCompleted.timeTaken
     }
 
-    const quizGrade = quizGrades.get(e.id)
-    const gradeLabel = quizGrade?.gradeLabel ?? null
-    const gradePercent = quizGrade?.gradePercent ?? null
+    const breakdown = finalGrades[index]
+    const gradePercent =
+      breakdown?.isComplete && breakdown.percentage !== null
+        ? breakdown.percentage
+        : null
+    const gradeLabel =
+      gradePercent !== null ? percentToGradeLabel(gradePercent) : null
     if (gradePercent !== null) {
       gradePercents.push(gradePercent)
     }

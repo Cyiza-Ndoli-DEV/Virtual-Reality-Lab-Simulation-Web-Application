@@ -7,6 +7,9 @@ import { deriveLabProgress } from '@/lib/questionnaire-display'
 import { areAllQuizzesFinished } from '@/lib/lab-progress-steps'
 import { serializeStudentQuizSummary } from '@/lib/quiz'
 import {
+  loadStudentExperimentGradeBreakdown,
+} from '@/lib/experiment-grading'
+import {
   percentToGradeLabel,
   sessionProgressPercent,
   type LabStatus,
@@ -84,6 +87,7 @@ export async function GET(
       answers: unknown
       reviewStatus: 'PENDING' | 'COMPLETED'
       reviewedAt: Date | null
+      marksAwarded: number | null
     } | null = null
 
     if (q) {
@@ -99,6 +103,7 @@ export async function GET(
           answers: true,
           reviewStatus: true,
           reviewedAt: true,
+          marksAwarded: true,
         },
       })
       if (row) submission = row
@@ -111,6 +116,7 @@ export async function GET(
       reviewStatus: 'PENDING' | 'COMPLETED'
       reviewedAt: Date | null
       teacherFeedback: string | null
+      marksAwarded: number | null
     } | null = null
 
     if (hasReportAssignment) {
@@ -124,6 +130,7 @@ export async function GET(
           reviewStatus: true,
           reviewedAt: true,
           teacherFeedback: true,
+          marksAwarded: true,
         },
       })
     }
@@ -145,20 +152,6 @@ export async function GET(
     const quizSummaries = experiment.quizzes
       .filter((q) => q._count.quizQuestions > 0)
       .map((q) => serializeStudentQuizSummary(q))
-
-    const quizAttempt = experiment.quizzes.flatMap((q) => q.attempts)[0]
-    let gradeLabel: string | null = null
-    let gradePercent: number | null = null
-    if (quizAttempt) {
-      gradePercent =
-        quizAttempt.percentage ??
-        (quizAttempt.totalPoints > 0
-          ? Math.round((quizAttempt.score / quizAttempt.totalPoints) * 100)
-          : null)
-      if (gradePercent !== null) {
-        gradeLabel = percentToGradeLabel(gradePercent)
-      }
-    }
 
     const steps = Array.isArray(experiment.steps) ? (experiment.steps as StepJson[]) : []
     const stepCount = steps.length > 0 ? steps.length : 5
@@ -195,8 +188,27 @@ export async function GET(
       hasReportAssignment,
       hasQuizzes: quizSummaries.length > 0,
       quizzesCompleted: areAllQuizzesFinished(quizSummaries),
-      hasFinalGrade: gradePercent !== null,
+      hasFinalGrade: false,
     })
+
+    const gradeBreakdown = await loadStudentExperimentGradeBreakdown(
+      studentId,
+      experimentId
+    )
+    const finalGradePercent = gradeBreakdown?.isComplete
+      ? gradeBreakdown.percentage
+      : null
+    const finalGradeLabel =
+      finalGradePercent !== null ? percentToGradeLabel(finalGradePercent) : null
+
+    if (gradeBreakdown?.isComplete) {
+      labProgress.finalGrade = 'completed'
+    } else if (
+      gradeBreakdown &&
+      gradeBreakdown.components.some((component) => component.graded)
+    ) {
+      labProgress.finalGrade = 'pending'
+    }
 
     const vrSession = activeSession ?? latestCompleted
 
@@ -225,6 +237,7 @@ export async function GET(
             submittedAt: submittedAtIso,
             reviewStatus: submission?.reviewStatus ?? null,
             reviewedAt: submission?.reviewedAt?.toISOString() ?? null,
+            marksAwarded: submission?.marksAwarded ?? null,
             answers: submission?.answers ?? null,
           }
         : null,
@@ -237,11 +250,13 @@ export async function GET(
             reviewStatus: reportRow?.reviewStatus ?? null,
             reviewedAt: reportRow?.reviewedAt?.toISOString() ?? null,
             teacherFeedback: reportRow?.teacherFeedback ?? null,
+            marksAwarded: reportRow?.marksAwarded ?? null,
             content: reportRow?.content ?? null,
           }
         : null,
-      gradeLabel,
-      gradePercent,
+      gradeLabel: finalGradeLabel,
+      gradePercent: finalGradePercent,
+      gradeBreakdown,
       labProgress,
       activeSessionId: activeSession?.id ?? null,
       vrSession: vrSession

@@ -22,6 +22,8 @@ import type { QuestionnaireAnswers, QuestionnaireConfig } from '@/lib/questionna
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
 import type { LabStatus } from '@/lib/student-lab-status'
 import type { LabProgress } from '@/lib/questionnaire-display'
+import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
+import { GradeBreakdown } from '@/components/grading/grade-breakdown'
 
 type ExperimentDetail = {
   experiment: {
@@ -57,6 +59,8 @@ type ExperimentDetail = {
     content: string | null
   } | null
   gradeLabel: string | null
+  gradePercent: number | null
+  gradeBreakdown: FinalGradeBreakdown | null
   labProgress: LabProgress
   vrSession: {
     id: string
@@ -153,6 +157,21 @@ function ExperimentDetailContent({
     />
   ) : null
 
+  const gradePanel =
+    data.gradeBreakdown &&
+    data.gradeBreakdown.components.some((component) => component.graded) ? (
+      <div className="mb-6">
+        <GradeBreakdown
+          breakdown={data.gradeBreakdown}
+          title={
+            data.gradeBreakdown.isComplete
+              ? `Final grade: ${data.gradeLabel ?? '—'}`
+              : 'Grade progress'
+          }
+        />
+      </div>
+    ) : null
+
   function PostLabGrid({ children }: { children: React.ReactNode }) {
     const items = Array.isArray(children)
       ? children.filter(Boolean)
@@ -246,6 +265,8 @@ function ExperimentDetailContent({
             </div>
           </div>
         )}
+
+        {gradePanel}
 
         <QuestionnaireReviewCard
           config={questionnaire.config}
