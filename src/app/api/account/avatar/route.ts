@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { promises as fs } from 'fs'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
 import {
@@ -7,17 +6,17 @@ import {
   extensionForMime,
   isAllowedAvatarMime,
 } from '@/lib/user-avatar'
-import {
-  avatarDiskPath,
-  avatarPublicPath,
-  deleteAllAvatarFilesForUser,
-  ensureAvatarDir,
-} from '@/lib/user-avatar-server'
+import { removeAvatar, uploadAvatar } from '@/lib/user-avatar-storage'
+
+export const runtime = 'nodejs'
 
 async function requireSignedInUser() {
   const session = await auth()
   if (!session?.user?.id) {
-    return { ok: false as const, response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) }
+    return {
+      ok: false as const,
+      response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+    }
   }
   return { ok: true as const, userId: session.user.id }
 }
@@ -50,20 +49,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image must be under 10MB' }, { status: 400 })
     }
 
-    await deleteAllAvatarFilesForUser(access.userId)
-    await ensureAvatarDir()
+    const existing = await prisma.user.findUnique({
+      where: { id: access.userId },
+      select: { avatarUrl: true },
+    })
 
-    const publicPath = avatarPublicPath(access.userId, ext)
-    await fs.writeFile(avatarDiskPath(access.userId, ext), buffer)
+    await removeAvatar(access.userId, existing?.avatarUrl)
+
+    const avatarUrl = await uploadAvatar(access.userId, ext, buffer, file.type)
 
     await prisma.user.update({
       where: { id: access.userId },
-      data: { avatarUrl: publicPath },
+      data: { avatarUrl },
     })
 
-    return NextResponse.json({ avatarUrl: publicPath })
-  } catch {
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ avatarUrl })
+  } catch (e) {
+    console.error('[POST /api/account/avatar]', e)
+    const message =
+      process.env.BLOB_READ_WRITE_TOKEN
+        ? 'Could not upload image'
+        : 'Avatar upload is not configured for this environment. Add Vercel Blob storage (BLOB_READ_WRITE_TOKEN).'
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
 
@@ -77,7 +84,7 @@ export async function DELETE() {
       select: { avatarUrl: true },
     })
 
-    await deleteAllAvatarFilesForUser(access.userId)
+    await removeAvatar(access.userId, user?.avatarUrl)
 
     await prisma.user.update({
       where: { id: access.userId },
@@ -85,7 +92,8 @@ export async function DELETE() {
     })
 
     return NextResponse.json({ avatarUrl: null, previousAvatarUrl: user?.avatarUrl ?? null })
-  } catch {
+  } catch (e) {
+    console.error('[DELETE /api/account/avatar]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
