@@ -1,5 +1,20 @@
 import prisma from '@/lib/prisma'
 
+async function loadQuizAttemptsForProfile(studentId: string) {
+  try {
+    return await prisma.quizAttempt.findMany({
+      where: { studentId },
+      select: { score: true, totalPoints: true, percentage: true },
+    })
+  } catch (error) {
+    console.error(
+      '[getStudentProfileStats] Quiz attempts unavailable:',
+      error instanceof Error ? error.message : error
+    )
+    return []
+  }
+}
+
 export async function getStudentProfileStats(studentId: string) {
   const [sessions, submissions, quizAttempts] = await Promise.all([
     prisma.experimentSession.findMany({
@@ -10,10 +25,7 @@ export async function getStudentProfileStats(studentId: string) {
       where: { studentId },
       select: { reviewStatus: true },
     }),
-    prisma.quizAttempt.findMany({
-      where: { studentId },
-      select: { score: true, totalPoints: true, percentage: true },
-    }),
+    loadQuizAttemptsForProfile(studentId),
   ])
 
   const completedByExperiment = new Set<string>()

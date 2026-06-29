@@ -34,26 +34,64 @@ export type StudentExperimentsPayload = {
   experiments: StudentLabData[]
 }
 
+type QuizGrade = {
+  gradePercent: number | null
+  gradeLabel: string | null
+}
+
+/** Best-effort quiz grades; returns empty when the quiz schema is not migrated yet. */
+async function loadQuizGradesByExperiment(
+  studentId: string
+): Promise<Map<string, QuizGrade>> {
+  const grades = new Map<string, QuizGrade>()
+  try {
+    const quizzes = await prisma.quiz.findMany({
+      where: { isPublished: true },
+      select: {
+        experimentId: true,
+        attempts: {
+          where: { studentId },
+          orderBy: { attemptedAt: 'desc' },
+          take: 1,
+          select: { score: true, totalPoints: true, percentage: true },
+        },
+      },
+    })
+
+    for (const quiz of quizzes) {
+      if (grades.has(quiz.experimentId)) continue
+      const attempt = quiz.attempts[0]
+      if (!attempt) continue
+
+      const gradePercent =
+        attempt.percentage ??
+        (attempt.totalPoints > 0
+          ? Math.round((attempt.score / attempt.totalPoints) * 100)
+          : null)
+      grades.set(quiz.experimentId, {
+        gradePercent,
+        gradeLabel:
+          gradePercent !== null ? percentToGradeLabel(gradePercent) : null,
+      })
+    }
+  } catch (error) {
+    console.error(
+      '[getStudentExperiments] Quiz grades unavailable:',
+      error instanceof Error ? error.message : error
+    )
+  }
+  return grades
+}
+
 export async function getStudentExperiments(
   studentId: string
 ): Promise<StudentExperimentsPayload> {
-  const [experiments, sessions, submissions] = await Promise.all([
+  const [experiments, sessions, submissions, quizGrades] = await Promise.all([
     prisma.experiment.findMany({
       orderBy: { title: 'asc' },
       include: {
         subject: { select: { code: true, name: true, status: true } },
         questionnaire: { select: { id: true } },
-        quizzes: {
-          where: { isPublished: true },
-          select: {
-            attempts: {
-              where: { studentId },
-              orderBy: { attemptedAt: 'desc' },
-              take: 1,
-              select: { score: true, totalPoints: true, percentage: true },
-            },
-          },
-        },
       },
     }),
     prisma.experimentSession.findMany({
@@ -76,6 +114,7 @@ export async function getStudentExperiments(
         reviewStatus: true,
       },
     }),
+    loadQuizGradesByExperiment(studentId),
   ])
 
   const sessionsByExperiment = new Map<string, typeof sessions>()
@@ -119,19 +158,11 @@ export async function getStudentExperiments(
       totalTimeSeconds += latestCompleted.timeTaken
     }
 
-    const quizAttempt = e.quizzes[0]?.attempts[0]
-    let gradeLabel: string | null = null
-    let gradePercent: number | null = null
-    if (quizAttempt) {
-      gradePercent =
-        quizAttempt.percentage ??
-        (quizAttempt.totalPoints > 0
-          ? Math.round((quizAttempt.score / quizAttempt.totalPoints) * 100)
-          : null)
-      if (gradePercent !== null) {
-        gradeLabel = percentToGradeLabel(gradePercent)
-        gradePercents.push(gradePercent)
-      }
+    const quizGrade = quizGrades.get(e.id)
+    const gradeLabel = quizGrade?.gradeLabel ?? null
+    const gradePercent = quizGrade?.gradePercent ?? null
+    if (gradePercent !== null) {
+      gradePercents.push(gradePercent)
     }
 
     const steps = Array.isArray(e.steps) ? (e.steps as StepJson[]) : []
