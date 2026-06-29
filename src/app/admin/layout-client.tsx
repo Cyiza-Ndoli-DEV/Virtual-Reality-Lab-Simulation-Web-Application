@@ -14,9 +14,11 @@ import { clientLogout } from '@/lib/client-logout'
 import type { PermissionMap } from '@/lib/portal-permissions'
 import {
   portalSubtitle,
+  isPortalNavItemActive,
   visiblePortalNav,
   visibleSettingsNav,
 } from '@/lib/portal-nav'
+import { cn } from '@/lib/utils'
 
 export default function AdminLayoutClient({
   children,
@@ -58,30 +60,32 @@ export default function AdminLayoutClient({
       sessionUser={sessionUser}
       openMobileSidebar={openMobileSidebar}
     >
-      <div className="flex h-screen overflow-hidden bg-slate-50">
+      <div className="flex h-screen overflow-hidden bg-gradient-to-br from-sky-50 via-white to-cyan-50">
         <aside
-          className={`
-        fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col overflow-hidden bg-slate-900 transition-transform duration-200
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:static lg:translate-x-0
-      `}
+          className={cn(
+            'fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col overflow-hidden bg-gradient-to-b from-blue-600 to-cyan-500 shadow-xl transition-transform duration-200',
+            sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+            'lg:static'
+          )}
         >
-          <div className="flex items-center gap-3 border-b border-slate-700 px-6 py-5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-16 -left-8 h-32 w-32 rounded-full bg-white/10" />
+
+          <div className="relative flex items-center gap-3 border-b border-white/15 px-6 py-5">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20 shadow-sm backdrop-blur-sm">
               <Atom className="h-5 w-5 text-white" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-white">VRSPS</p>
-              <p className="text-xs text-slate-400">{portalSubtitle(role)}</p>
+              <p className="text-base font-semibold text-white">VRSPS</p>
+              <p className="app-caption text-blue-100">{portalSubtitle(role)}</p>
             </div>
           </div>
 
-          <nav className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4">
+          <nav className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4">
             <div className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon
-                const active =
-                  pathname === item.href || pathname.startsWith(`${item.href}/`)
+                const active = isPortalNavItemActive(item, pathname)
                 return (
                   <button
                     key={item.href}
@@ -90,14 +94,14 @@ export default function AdminLayoutClient({
                       router.push(item.href)
                       setSidebarOpen(false)
                     }}
-                    className={`
-                  flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors
-                  ${active
-                    ? 'bg-blue-600 text-white'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'}
-                `}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[0.9375rem] font-medium transition-colors',
+                      active
+                        ? 'bg-white text-blue-700 shadow-sm'
+                        : 'text-blue-50 hover:bg-white/15 hover:text-white'
+                    )}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4 shrink-0" />
                     {item.label}
                   </button>
                 )
@@ -105,11 +109,11 @@ export default function AdminLayoutClient({
             </div>
 
             {settingsSubItems.length > 0 ? (
-              <div className="mt-4 border-t border-slate-700 pt-4">
+              <div className="mt-4 border-t border-white/15 pt-4">
                 <button
                   type="button"
                   onClick={() => setSettingsOpen((o) => !o)}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 transition-colors hover:bg-slate-800 hover:text-slate-300"
+                  className="app-label flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-blue-100 transition-colors hover:bg-white/10 hover:text-white"
                   aria-expanded={settingsOpen}
                 >
                   {settingsOpen ? (
@@ -121,7 +125,7 @@ export default function AdminLayoutClient({
                   Settings
                 </button>
                 {settingsOpen ? (
-                  <div className="mt-1 ml-1.5 space-y-0.5 border-l border-slate-700/80 pl-3">
+                  <div className="mt-1 ml-1.5 space-y-0.5 border-l border-white/20 pl-3">
                     {settingsSubItems.map((sub) => {
                       const SubIcon = sub.icon
                       const subActive = pathname === sub.href
@@ -133,12 +137,12 @@ export default function AdminLayoutClient({
                             router.push(sub.href)
                             setSidebarOpen(false)
                           }}
-                          className={`
-                        flex w-full items-center gap-3 rounded-lg py-2 pr-2 pl-2 text-sm transition-colors
-                        ${subActive
-                          ? 'bg-slate-800 text-white'
-                          : 'text-slate-400 hover:bg-slate-800/80 hover:text-white'}
-                      `}
+                          className={cn(
+                            'flex w-full items-center gap-3 rounded-lg py-2 pr-2 pl-2 text-[0.9375rem] transition-colors',
+                            subActive
+                              ? 'bg-white/20 font-medium text-white'
+                              : 'text-blue-100 hover:bg-white/10 hover:text-white'
+                          )}
                         >
                           <SubIcon className="h-4 w-4 shrink-0 opacity-90" />
                           {sub.label}
@@ -151,11 +155,11 @@ export default function AdminLayoutClient({
             ) : null}
           </nav>
 
-          <div className="border-t border-slate-700 px-3 py-4">
+          <div className="relative border-t border-white/15 px-3 py-4">
             <button
               type="button"
               onClick={() => void handleLogout()}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[0.9375rem] text-blue-50 transition-colors hover:bg-white/15 hover:text-white"
             >
               <LogOut className="h-4 w-4" />
               Sign Out
@@ -165,7 +169,7 @@ export default function AdminLayoutClient({
 
         {sidebarOpen ? (
           <div
-            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-blue-950/40 backdrop-blur-[2px] lg:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-hidden
           />

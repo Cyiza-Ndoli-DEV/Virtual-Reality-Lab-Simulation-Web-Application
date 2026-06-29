@@ -282,7 +282,7 @@ export function StudentQuestionnaireForm({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="border-b border-slate-200 pb-4">
-        <h1 className="text-xl font-semibold text-slate-900">{config.title}</h1>
+        <h1 className="app-page-title">{config.title}</h1>
         <p className="mt-1 text-sm text-slate-500">
           Complete all sections below after finishing the VR lab practical.
         </p>

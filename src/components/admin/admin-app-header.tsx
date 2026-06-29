@@ -31,13 +31,14 @@ export function AdminAppHeader() {
         <button
           type="button"
           aria-label="Open navigation menu"
+          title="Open navigation menu"
           onClick={openMobileSidebar}
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 lg:hidden"
         >
           <Menu className="h-5 w-5" />
         </button>
 
-        <h1 className="min-w-0 flex-1 font-serif text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
+        <h1 className="app-page-title min-w-0 flex-1">
           {title || 'Admin'}
         </h1>
 
@@ -46,6 +47,7 @@ export function AdminAppHeader() {
             type="button"
             className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50"
             aria-label={hasUnreadNotifications ? 'Notifications (unread)' : 'Notifications'}
+            title={hasUnreadNotifications ? 'Notifications (unread)' : 'Notifications'}
           >
             <Bell className="h-4 w-4" />
             {hasUnreadNotifications ? (
@@ -57,6 +59,7 @@ export function AdminAppHeader() {
             href="/admin/profile"
             className="flex min-w-0 max-w-[min(100%,14rem)] items-center gap-3 rounded-xl border border-slate-200 bg-white py-1.5 pl-1.5 pr-3 shadow-sm transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/50 sm:max-w-none"
             aria-label="View your profile"
+            title="View your profile"
           >
             <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full bg-slate-200">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -67,10 +70,10 @@ export function AdminAppHeader() {
               />
             </div>
             <div className="hidden min-w-0 text-left leading-tight sm:block">
-              <p className="truncate font-serif text-sm font-semibold text-slate-900">
+              <p className="truncate text-[0.9375rem] font-semibold text-slate-900">
                 {displayName}
               </p>
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
+              <p className="app-caption font-semibold uppercase tracking-wide">
                 {roleLine}
               </p>
             </div>

@@ -122,25 +122,87 @@ model WrongStepLog {
 }
 
 model Quiz {
-  id           String   @id @default(cuid())
-  title        String
-  experimentId String
-  questions    Json
-  createdAt    DateTime @default(now())
-  experiment   Experiment    @relation(fields: [experimentId], references: [id])
-  attempts     QuizAttempt[]
+  id               String         @id @default(cuid())
+  experimentId     String
+  title            String
+  description      String         @default("") @db.Text
+  passMark         Int            @default(60)
+  timeLimit        Int?
+  attemptsAllowed  Int            @default(1)
+  shuffleQuestions Boolean        @default(false)
+  isPublished      Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  experiment       Experiment     @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  quizQuestions    QuizQuestion[]
+  attempts         QuizAttempt[]
+
+  @@index([experimentId])
+  @@index([experimentId, isPublished])
+}
+
+enum QuizQuestionType {
+  MCQ
+  TRUE_FALSE
+}
+
+model QuizQuestion {
+  id           String           @id @default(cuid())
+  quizId       String
+  questionText String           @db.Text
+  questionType QuizQuestionType
+  points       Int              @default(1)
+  displayOrder Int              @default(0)
+  quiz         Quiz             @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options      QuizOption[]
+  answers      QuizAnswer[]
+
+  @@index([quizId, displayOrder])
+}
+
+model QuizOption {
+  id         String       @id @default(cuid())
+  questionId String
+  optionText String       @db.Text
+  isCorrect  Boolean      @default(false)
+  question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selections QuizAnswer[]
+
+  @@index([questionId])
 }
 
 model QuizAttempt {
-  id             String   @id @default(cuid())
-  studentId      String
-  quizId         String
-  score          Int
-  totalQuestions Int
-  answers        Json
-  attemptedAt    DateTime @default(now())
-  student        User @relation(fields: [studentId], references: [id])
-  quiz           Quiz @relation(fields: [quizId], references: [id])
+  id          String       @id @default(cuid())
+  studentId   String
+  quizId      String
+  score       Int
+  totalPoints Int
+  percentage  Int
+  passed      Boolean      @default(false)
+  /// Legacy JSON snapshot; prefer `quizAnswers` for new attempts.
+  answers     Json?
+  attemptedAt DateTime     @default(now())
+  student     User         @relation(fields: [studentId], references: [id])
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quizAnswers QuizAnswer[]
+
+  @@index([quizId])
+  @@index([studentId])
+  @@index([quizId, studentId])
+}
+
+model QuizAnswer {
+  id               String       @id @default(cuid())
+  attemptId        String
+  questionId       String
+  selectedOptionId String?
+  isCorrect        Boolean      @default(false)
+  attempt          QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question         QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOption   QuizOption?  @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@index([attemptId])
+  @@index([questionId])
 }
 
 /// Teacher-defined written report assignment (one per experiment).

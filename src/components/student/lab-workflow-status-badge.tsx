@@ -15,7 +15,7 @@ export function LabWorkflowStatusBadge({
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold',
+        'inline-flex items-center rounded-full border px-3 py-1 text-[0.8125rem] font-semibold',
         meta.className,
         className
       )}

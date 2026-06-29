@@ -147,7 +147,7 @@ function LoginForm() {
               Virtual Reality Science Practical System
             </div>
 
-            <h1 className="mt-8 max-w-xl text-5xl font-bold leading-tight text-white">
+            <h1 className="mt-8 max-w-xl text-4xl font-bold leading-tight text-white">
               Experience Science Practicals in Virtual Reality
             </h1>
 
@@ -169,7 +169,7 @@ function LoginForm() {
                     Interactive Experiments
                   </h3>
 
-                  <p className="mt-1 text-sm text-blue-100">
+                  <p className="mt-1 text-[0.9375rem] text-blue-100">
                     Perform laboratory practicals safely in a fully virtual environment.
                   </p>
                 </div>
@@ -185,7 +185,7 @@ function LoginForm() {
                     Smart Learning Analytics
                   </h3>
 
-                  <p className="mt-1 text-sm text-blue-100">
+                  <p className="mt-1 text-[0.9375rem] text-blue-100">
                     Track student progress, performance, and practical completion.
                   </p>
                 </div>
@@ -227,11 +227,11 @@ function LoginForm() {
                 <Atom className="h-8 w-8 text-white" />
               </div>
 
-              <h2 className="mt-5 text-3xl font-bold text-slate-800">
+              <h2 className="app-page-title mt-5 text-slate-800">
                 Welcome to VRSPS
               </h2>
 
-              <p className="mt-2 text-sm text-slate-500">
+              <p className="app-body-muted mt-2">
                 Sign in to access the VRSPS dashboard
               </p>
             </div>
@@ -282,6 +282,8 @@ function LoginForm() {
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? (
                       <EyeOff className="h-5 w-5" />

@@ -6,12 +6,9 @@ import {
   ArrowRight,
   BookMarked,
   ClipboardList,
-  Clock,
   FlaskConical,
   GraduationCap,
   LayoutDashboard,
-  TrendingUp,
-  UserCheck,
   Users,
   Zap,
 } from 'lucide-react'
@@ -136,76 +133,55 @@ export function AdminDashboardClient({
       value: formatNumber(stats.totalStudents),
       hint: 'Registered learners',
       icon: GraduationCap,
-      accent: 'from-blue-500 to-blue-600',
-    },
-    {
-      label: 'Educators',
-      value: formatNumber(stats.totalTeachers),
-      hint: 'Teaching staff',
-      icon: UserCheck,
-      accent: 'from-violet-500 to-violet-600',
-    },
-    {
-      label: 'VR sessions',
-      value: formatNumber(stats.totalSessions),
-      hint: 'All time',
-      icon: FlaskConical,
-      accent: 'from-indigo-500 to-indigo-600',
-    },
-    {
-      label: 'Pass rate',
-      value: `${stats.passRate}%`,
-      hint: 'Completed & passed',
-      icon: TrendingUp,
-      accent: 'from-emerald-500 to-emerald-600',
+      accent: 'from-blue-600 to-cyan-500',
     },
     {
       label: 'Active today',
       value: formatNumber(stats.activeNow),
       hint: 'Students in VR (24h)',
       icon: Zap,
-      accent: 'from-amber-500 to-orange-500',
+      accent: 'from-cyan-500 to-teal-500',
     },
     {
-      label: 'VR hours',
-      value: formatNumber(stats.vrUsageHours),
-      hint: 'Total time in labs',
-      icon: Clock,
-      accent: 'from-cyan-500 to-teal-600',
+      label: 'VR sessions',
+      value: formatNumber(stats.totalSessions),
+      hint: 'All time',
+      icon: FlaskConical,
+      accent: 'from-blue-500 to-blue-600',
     },
     {
       label: 'Pending reviews',
       value: formatNumber(data.pendingReviews),
       hint: 'Questionnaires',
       icon: ClipboardList,
-      accent: 'from-rose-500 to-pink-600',
+      accent: 'from-sky-500 to-cyan-600',
     },
     {
       label: 'Experiments',
       value: formatNumber(data.totalExperiments),
       hint: `${formatNumber(data.activeSubjects)} active subjects`,
       icon: LayoutDashboard,
-      accent: 'from-slate-600 to-slate-700',
+      accent: 'from-blue-700 to-cyan-600',
     },
   ]
 
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 px-6 py-8 text-white shadow-lg sm:px-8">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-violet-500/15 blur-3xl" />
+      <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-500 px-6 py-8 text-white shadow-lg sm:px-8">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
         <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-blue-200/90">
-              VRSPS Admin
+            <p className="app-label text-blue-100">
+              VRSPS Portal
             </p>
-            <h2 className="mt-2 font-serif text-2xl font-semibold tracking-tight sm:text-3xl">
+            <h2 className="app-page-title mt-2 text-white">
               Welcome back, {userName.split(' ')[0] || 'Admin'}
             </h2>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-300">
-              Live overview from your database — students, VR sessions, pass rates, and
-              reviews updated on every visit.
+            <p className="app-body-muted mt-2 max-w-xl text-blue-100">
+              Live overview from your database — students, lab activity, and reviews
+              updated on every visit.
             </p>
           </div>
           {visibleActions.length > 0 ? (
@@ -238,7 +214,7 @@ export function AdminDashboardClient({
       </section>
 
       {/* KPI grid */}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {kpis.map((kpi) => {
           const Icon = kpi.icon
           return (
@@ -262,13 +238,13 @@ export function AdminDashboardClient({
                   <Icon className="h-5 w-5" />
                 </div>
               </div>
-              <p className="relative mt-4 text-2xl font-bold tabular-nums tracking-tight text-slate-900">
+              <p className="relative mt-4 text-xl font-bold tabular-nums tracking-tight text-slate-900">
                 {kpi.value}
               </p>
-              <p className="relative mt-0.5 text-sm font-medium text-slate-800">
+              <p className="app-body relative mt-0.5 font-medium text-slate-800">
                 {kpi.label}
               </p>
-              <p className="relative mt-0.5 text-xs text-slate-500">{kpi.hint}</p>
+              <p className="app-caption relative mt-0.5">{kpi.hint}</p>
             </div>
           )
         })}
@@ -279,7 +255,7 @@ export function AdminDashboardClient({
         <Card className="border-slate-200/80 shadow-sm lg:col-span-2">
           <CardHeader className="border-b border-slate-100">
             <CardTitle className="flex items-center gap-2 text-slate-900">
-              <Activity className="h-4 w-4 text-blue-600" />
+              <Activity className="h-4 w-4 text-cyan-600" />
               VR activity — last 7 days
             </CardTitle>
             <CardDescription>
@@ -343,17 +319,17 @@ export function AdminDashboardClient({
                   key={action.href}
                   asChild
                   variant="outline"
-                  className="h-auto w-full justify-start rounded-xl border-slate-200 bg-slate-50/50 px-4 py-3.5 text-left shadow-sm transition-all hover:border-blue-200 hover:bg-blue-50/80 hover:shadow"
+                  className="h-auto w-full justify-start rounded-xl border-slate-200 bg-slate-50/50 px-4 py-3.5 text-left shadow-sm transition-all hover:border-cyan-200 hover:bg-cyan-50/80 hover:shadow"
                 >
                   <Link href={action.href}>
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
                       <Icon className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-slate-900">
                         {action.label}
                       </span>
-                      <span className="block text-xs font-normal text-slate-500">
+                      <span className="app-caption block font-normal">
                         {action.description}
                       </span>
                     </span>
@@ -435,7 +411,7 @@ export function AdminDashboardClient({
         {data.pendingReviews > 0 && hasPermission(permissions, 'teacher.reports') ? (
           <Button
             asChild
-            className="rounded-xl bg-blue-600 px-5 shadow-sm hover:bg-blue-700"
+            className="rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-5 shadow-sm hover:opacity-90"
           >
             <Link href="/admin/student-work">
               Review {data.pendingReviews} pending

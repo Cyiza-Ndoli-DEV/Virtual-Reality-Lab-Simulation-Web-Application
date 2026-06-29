@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ClipboardList, FileText, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { ClipboardList, FileText, HelpCircle, MoreHorizontal, Pencil, Plus, Search, Trash2 } from 'lucide-react'
+import { DropdownMenu as DropdownMenuPrimitive } from 'radix-ui'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -305,31 +306,57 @@ export default function AdminExperimentsPage() {
                   </TableCell>
                   <TableCell className="pr-6 text-right">
                     <div className="flex items-center justify-end gap-0.5">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-violet-600 hover:bg-violet-50 hover:text-violet-700"
-                        aria-label={`Questionnaire setup for ${r.title}`}
-                        onClick={() => router.push(`/admin/experiments/${r.id}/questionnaire`)}
-                      >
-                        <ClipboardList className="size-4" />
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-teal-600 hover:bg-teal-50 hover:text-teal-700"
-                        aria-label={`Lab report assignment for ${r.title}`}
-                        onClick={() => router.push(`/admin/experiments/${r.id}/report`)}
-                      >
-                        <FileText className="size-4" />
-                      </Button>
+                      <DropdownMenuPrimitive.Root modal={false}>
+                        <DropdownMenuPrimitive.Trigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            className="text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                            title="Lab setup"
+                            aria-label={`Lab setup for ${r.title}`}
+                          >
+                            <MoreHorizontal className="size-4" />
+                          </Button>
+                        </DropdownMenuPrimitive.Trigger>
+                        <DropdownMenuPrimitive.Portal>
+                          <DropdownMenuPrimitive.Content
+                            align="end"
+                            sideOffset={6}
+                            className="data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 min-w-[11rem] overflow-hidden rounded-xl border border-slate-200 bg-white p-1 shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out"
+                          >
+                            <DropdownMenuPrimitive.Item
+                              className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-slate-800 outline-none select-none data-[highlighted]:bg-indigo-50 data-[highlighted]:text-indigo-900"
+                              onSelect={() => router.push(`/admin/experiments/${r.id}/quizzes`)}
+                            >
+                              <HelpCircle className="size-4 text-indigo-600" />
+                              Quizzes
+                            </DropdownMenuPrimitive.Item>
+                            <DropdownMenuPrimitive.Item
+                              className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-slate-800 outline-none select-none data-[highlighted]:bg-violet-50 data-[highlighted]:text-violet-900"
+                              onSelect={() =>
+                                router.push(`/admin/experiments/${r.id}/questionnaire`)
+                              }
+                            >
+                              <ClipboardList className="size-4 text-violet-600" />
+                              Questionnaire
+                            </DropdownMenuPrimitive.Item>
+                            <DropdownMenuPrimitive.Item
+                              className="flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-sm text-slate-800 outline-none select-none data-[highlighted]:bg-teal-50 data-[highlighted]:text-teal-900"
+                              onSelect={() => router.push(`/admin/experiments/${r.id}/report`)}
+                            >
+                              <FileText className="size-4 text-teal-600" />
+                              Report
+                            </DropdownMenuPrimitive.Item>
+                          </DropdownMenuPrimitive.Content>
+                        </DropdownMenuPrimitive.Portal>
+                      </DropdownMenuPrimitive.Root>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon-sm"
                         className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                        title="Edit"
                         aria-label={`Edit ${r.title}`}
                         onClick={() => openEdit(r)}
                       >
@@ -340,6 +367,7 @@ export default function AdminExperimentsPage() {
                         variant="ghost"
                         size="icon-sm"
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Delete"
                         aria-label={`Delete ${r.title}`}
                         onClick={() => {
                           setDeleteError('')

@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 function ReadOnlyAnswer({ text, className }: { text: string; className?: string }) {
   if (!text.trim()) {
     return (
-      <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm italic text-slate-400">
+      <p className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[0.9375rem] italic text-slate-400">
         No response recorded.
       </p>
     )
@@ -22,7 +22,7 @@ function ReadOnlyAnswer({ text, className }: { text: string; className?: string 
   return (
     <div
       className={cn(
-        'rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700',
+        'rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-[0.9375rem] leading-relaxed text-slate-700',
         className
       )}
     >
@@ -55,10 +55,10 @@ export function QuestionnaireReviewCard({
   return (
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-100 px-6 py-4">
-        <p className="text-sm font-semibold text-slate-900">
+        <p className="app-card-title">
           {questionnaireItemLabel(itemIndex)}
         </p>
-        <p className="mt-1 text-sm text-slate-500">
+        <p className="app-body-muted mt-1">
           Complete all sections below after finishing the VR lab practical.
         </p>
       </div>
@@ -66,14 +66,14 @@ export function QuestionnaireReviewCard({
       <div className="space-y-8 px-6 py-6">
         {design ? (
           <div className="space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            <p className="app-label text-blue-600">
               Scenario
             </p>
-            <p className="text-sm leading-relaxed text-slate-800">{design.context}</p>
+            <p className="app-body text-slate-800">{design.context}</p>
             {design.materials.length > 0 ? (
               <div className="rounded-xl border border-slate-200 bg-slate-50/90 px-4 py-3">
-                <p className="text-sm font-medium text-slate-800">You are provided with:</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+                <p className="app-body font-medium text-slate-800">You are provided with:</p>
+                <ul className="app-body mt-2 list-disc space-y-1 pl-5">
                   {design.materials.map((m) => (
                     <li key={m}>{m}</li>
                   ))}
@@ -85,16 +85,16 @@ export function QuestionnaireReviewCard({
 
         {tasks.length > 0 ? (
           <div className="space-y-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-600">
+            <p className="app-label text-blue-600">
               Task &amp; responses
             </p>
             {design ? (
               <div>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-[0.9375rem] font-semibold text-slate-900">
                   <span>{design.label}</span> {design.taskPrompt}
                 </p>
                 {design.requirementsNote ? (
-                  <p className="mt-1 text-sm italic text-slate-500">
+                  <p className="mt-1 text-[0.9375rem] italic text-slate-500">
                     ({design.requirementsNote})
                   </p>
                 ) : null}
@@ -105,14 +105,14 @@ export function QuestionnaireReviewCard({
             ) : null}
             {tasks.map((section) => (
               <div key={section.id}>
-                <p className="text-sm font-semibold text-slate-900">
+                <p className="text-[0.9375rem] font-semibold text-slate-900">
                   <span>{section.label}</span>{' '}
                   {section.type === 'record'
                     ? section.instruction
                     : section.prompt}
                 </p>
                 {section.type === 'record' && section.requirementsNote ? (
-                  <p className="mt-1 text-sm italic text-slate-500">
+                  <p className="mt-1 text-[0.9375rem] italic text-slate-500">
                     ({section.requirementsNote})
                   </p>
                 ) : null}
@@ -139,7 +139,7 @@ export function QuestionnaireReviewCard({
           {experimentId ? (
             <Link
               href={`/student/experiments/${experimentId}/questionnaire`}
-              className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+              className="text-[0.9375rem] font-semibold text-blue-600 hover:text-blue-700"
             >
               View details
             </Link>

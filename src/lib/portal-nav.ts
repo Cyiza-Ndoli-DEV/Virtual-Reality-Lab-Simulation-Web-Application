@@ -5,6 +5,7 @@ import {
   FileText,
   FlaskConical,
   GraduationCap,
+  HelpCircle,
   LayoutDashboard,
   Shield,
   User,
@@ -31,6 +32,7 @@ export const portalNavItems: PortalNavItem[] = [
     feature: 'teacher.registerStudents',
   },
   { label: 'Experiments', href: '/admin/experiments', icon: FlaskConical, feature: 'admin.experiments' },
+  { label: 'Quizzes', href: '/admin/quizzes', icon: HelpCircle, feature: 'admin.experiments' },
   { label: 'Student work', href: '/admin/student-work', icon: ClipboardList, feature: 'teacher.reports' },
   { label: 'Reports', href: '/admin/reports', icon: FileText, feature: 'admin.reports' },
 ]
@@ -74,6 +76,19 @@ export function visibleSettingsNav(
     if (item.adminOnly) return hasPermission(permissions, 'admin.users')
     return true
   })
+}
+
+export function isPortalNavItemActive(item: PortalNavItem, pathname: string) {
+  if (item.href === '/admin/quizzes') {
+    return pathname.startsWith('/admin') && pathname.includes('/quizzes')
+  }
+  if (item.href === '/admin/experiments') {
+    return (
+      (pathname === '/admin/experiments' || pathname.startsWith('/admin/experiments/')) &&
+      !pathname.includes('/quizzes')
+    )
+  }
+  return pathname === item.href || pathname.startsWith(`${item.href}/`)
 }
 
 export function portalSubtitle(role: string): string {

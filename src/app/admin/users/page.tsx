@@ -153,11 +153,11 @@ export default function AdminUsersPage() {
   const [inviteName, setInviteName] = useState('')
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteUsername, setInviteUsername] = useState('')
-  const [invitePassword, setInvitePassword] = useState('')
   const [inviteRole, setInviteRole] = useState('STUDENT')
   const [inviteSubjectId, setInviteSubjectId] = useState('')
   const [inviteBusy, setInviteBusy] = useState(false)
   const [inviteError, setInviteError] = useState('')
+  const [inviteNotice, setInviteNotice] = useState('')
 
   const [subjects, setSubjects] = useState<SubjectOption[]>([])
 
@@ -344,7 +344,6 @@ export default function AdminUsersPage() {
         body: JSON.stringify({
           name: inviteName,
           email: inviteEmail,
-          password: invitePassword,
           role: inviteRole,
           ...(inviteRole === 'STUDENT' ? { username: inviteUsername } : {}),
           ...(inviteRole === 'TEACHER' ? { subjectId: inviteSubjectId } : {}),
@@ -359,12 +358,16 @@ export default function AdminUsersPage() {
       setInviteName('')
       setInviteEmail('')
       setInviteUsername('')
-      setInvitePassword('')
       setInviteRole(
         (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])?.code ??
           'STUDENT'
       )
       setInviteSubjectId('')
+      setInviteNotice(
+        data.emailSent === false
+          ? `Account created for ${data.email}, but the welcome email could not be sent. Configure GMAIL_USER and GMAIL_APP_PASSWORD.`
+          : `Account created. Login credentials were emailed to ${data.email}.`
+      )
       await loadUsers()
     } finally {
       setInviteBusy(false)
@@ -431,6 +434,20 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
+      {inviteNotice ? (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p>{inviteNotice}</p>
+          <button
+            type="button"
+            className="shrink-0 text-emerald-700 hover:text-emerald-900"
+            onClick={() => setInviteNotice('')}
+            aria-label="Dismiss"
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
         {/* Tabs */}
         <div className="mt-6 flex gap-8 border-b border-slate-200">
           <button
@@ -674,6 +691,7 @@ export default function AdminUsersPage() {
                             type="button"
                             className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
                             title="View"
+                            aria-label="View user"
                             onClick={() => setViewUser(u)}
                           >
                             <Eye className="h-4 w-4" />
@@ -682,6 +700,7 @@ export default function AdminUsersPage() {
                             type="button"
                             className="flex h-8 w-8 items-center justify-center rounded-lg text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
                             title="Edit"
+                            aria-label="Edit user"
                             onClick={() => openEdit(u)}
                           >
                             <Pencil className="h-4 w-4" />
@@ -690,6 +709,7 @@ export default function AdminUsersPage() {
                             type="button"
                             className="flex h-8 w-8 items-center justify-center rounded-lg text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
                             title="Delete"
+                            aria-label="Delete user"
                             onClick={() => {
                               setDeleteError('')
                               setDeleteTarget(u)
@@ -719,6 +739,8 @@ export default function AdminUsersPage() {
                   disabled={safePage <= 1}
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
+                  aria-label="Previous page"
+                  title="Previous page"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
@@ -747,6 +769,8 @@ export default function AdminUsersPage() {
                   disabled={safePage >= pageCount}
                   onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
                   className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 disabled:opacity-40"
+                  aria-label="Next page"
+                  title="Next page"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
@@ -977,7 +1001,8 @@ export default function AdminUsersPage() {
           <DialogHeader>
             <DialogTitle>Add user</DialogTitle>
             <DialogDescription>
-              Create an account with a temporary password. The user must change it on first sign-in.
+              A temporary password is generated from the user&apos;s first name and today&apos;s
+              date, then emailed to them. They must change it on first sign-in.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -1020,18 +1045,6 @@ export default function AdminUsersPage() {
                 </p>
               </div>
             ) : null}
-            <div className="grid gap-1.5">
-              <Label htmlFor="invite-pass">Temporary password</Label>
-              <Input
-                id="invite-pass"
-                type="password"
-                value={invitePassword}
-                onChange={(e) => setInvitePassword(e.target.value)}
-                placeholder="Choose a temporary password"
-                autoComplete="new-password"
-                className="h-10"
-              />
-            </div>
             <div className="grid gap-1.5">
               <Label htmlFor="invite-role">Role</Label>
               <select

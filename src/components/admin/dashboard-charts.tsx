@@ -112,7 +112,7 @@ export function OutcomeDonutChart({
 
   if (total === 0) {
     return (
-      <p className="py-8 text-center text-sm text-slate-500">No sessions yet.</p>
+      <p className="app-body-muted py-8 text-center">No sessions yet.</p>
     )
   }
 
@@ -133,13 +133,11 @@ export function OutcomeDonutChart({
         />
         <div className="absolute inset-[18%] rounded-full bg-white shadow-sm" />
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <p className="text-2xl font-bold text-slate-900">{total}</p>
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-            Sessions
-          </p>
+          <p className="text-xl font-bold text-slate-900">{total}</p>
+          <p className="app-label">Sessions</p>
         </div>
       </div>
-      <ul className="w-full max-w-xs space-y-2.5 text-sm sm:w-auto">
+      <ul className="app-body w-full max-w-xs space-y-2.5 sm:w-auto">
         {segments.map((seg) => (
           <li key={seg.label} className="flex items-center gap-2.5">
             <span
@@ -163,11 +161,11 @@ export function RoleBreakdownChart({ data }: { data: RoleBreakdownPoint[] }) {
   return (
     <div className="space-y-3">
       {data.length === 0 ? (
-        <p className="text-sm text-slate-500">No users yet.</p>
+        <p className="app-body-muted">No users yet.</p>
       ) : (
         data.map((row, i) => (
           <div key={row.role}>
-            <div className="mb-1 flex items-center justify-between text-sm">
+            <div className="app-body mb-1 flex items-center justify-between">
               <span className="font-medium text-slate-700">{row.label}</span>
               <span className="tabular-nums font-semibold text-slate-900">
                 {row.count}
@@ -195,15 +193,15 @@ export function TopExperimentsChart({ data }: { data: TopExperimentPoint[] }) {
   return (
     <div className="space-y-4">
       {data.length === 0 ? (
-        <p className="text-sm text-slate-500">No VR sessions recorded yet.</p>
+        <p className="app-body-muted">No VR sessions recorded yet.</p>
       ) : (
         data.map((row, i) => (
           <div key={row.id} className="flex items-center gap-3">
-            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[0.8125rem] font-bold text-slate-600">
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-slate-800">{row.title}</p>
+              <p className="truncate text-[0.9375rem] font-medium text-slate-800">{row.title}</p>
               <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
                 <div
                   className="h-full rounded-full bg-blue-600"
@@ -211,7 +209,7 @@ export function TopExperimentsChart({ data }: { data: TopExperimentPoint[] }) {
                 />
               </div>
             </div>
-            <span className="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+            <span className="shrink-0 text-[0.9375rem] font-semibold tabular-nums text-slate-900">
               {row.sessions}
             </span>
           </div>

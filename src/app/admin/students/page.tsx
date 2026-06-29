@@ -62,9 +62,9 @@ export default function AdminStudentsPage() {
   const [addName, setAddName] = useState('')
   const [addEmail, setAddEmail] = useState('')
   const [addUsername, setAddUsername] = useState('')
-  const [addPassword, setAddPassword] = useState('')
   const [addBusy, setAddBusy] = useState(false)
   const [addError, setAddError] = useState('')
+  const [addNotice, setAddNotice] = useState('')
 
   const [editRow, setEditRow] = useState<StudentRow | null>(null)
   const [editName, setEditName] = useState('')
@@ -116,7 +116,6 @@ export default function AdminStudentsPage() {
           name: addName,
           email: addEmail,
           username: addUsername,
-          password: addPassword,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -128,7 +127,11 @@ export default function AdminStudentsPage() {
       setAddName('')
       setAddEmail('')
       setAddUsername('')
-      setAddPassword('')
+      setAddNotice(
+        data.emailSent === false
+          ? `Student registered, but the welcome email could not be sent to ${data.email}. Check email settings.`
+          : `Student registered. Login credentials were emailed to ${data.email}.`
+      )
       await load()
     } finally {
       setAddBusy(false)
@@ -162,7 +165,6 @@ export default function AdminStudentsPage() {
     setAddName('')
     setAddEmail('')
     setAddUsername('')
-    setAddPassword('')
     setAddOpen(true)
   }
 
@@ -172,7 +174,6 @@ export default function AdminStudentsPage() {
       setAddName('')
       setAddEmail('')
       setAddUsername('')
-      setAddPassword('')
       setAddError('')
     }
   }
@@ -199,6 +200,20 @@ export default function AdminStudentsPage() {
 
   return (
     <div className="space-y-6">
+      {addNotice ? (
+        <div className="flex items-start justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          <p>{addNotice}</p>
+          <button
+            type="button"
+            className="shrink-0 text-emerald-700 hover:text-emerald-900"
+            onClick={() => setAddNotice('')}
+            aria-label="Dismiss"
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
       <div>
         <p className="max-w-2xl text-sm text-slate-500">
           Register and manage student accounts. Educators can only add users with the
@@ -282,12 +297,13 @@ export default function AdminStudentsPage() {
                   </TableCell>
                   <TableCell className="pr-6 text-right">
                     <div className="inline-flex gap-1">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-blue-600 hover:bg-blue-50"
-                        aria-label={`Edit ${s.name}`}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Edit"
+                          aria-label={`Edit ${s.name}`}
                         onClick={() => {
                           setEditError('')
                           setEditRow(s)
@@ -297,12 +313,13 @@ export default function AdminStudentsPage() {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="text-red-600 hover:bg-red-50"
-                        aria-label={`Delete ${s.name}`}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          className="text-red-600 hover:bg-red-50"
+                          title="Delete"
+                          aria-label={`Delete ${s.name}`}
                         onClick={() => {
                           setDeleteError('')
                           setDeleteRow(s)
@@ -327,8 +344,8 @@ export default function AdminStudentsPage() {
               Register student
             </DialogTitle>
             <DialogDescription>
-              Creates a student account with a unique username and temporary password. The student
-              must change the password on first sign-in.
+              A temporary password is generated from the student&apos;s first name and today&apos;s
+              date, then emailed to them. They must change it on first sign-in.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 py-2">
@@ -364,18 +381,6 @@ export default function AdminStudentsPage() {
                 placeholder="e.g. jstudent"
                 autoComplete="off"
                 className="h-10 font-mono"
-              />
-            </div>
-            <div className="grid gap-1.5">
-              <Label htmlFor="stu-pass">Temporary password</Label>
-              <Input
-                id="stu-pass"
-                type="password"
-                value={addPassword}
-                onChange={(e) => setAddPassword(e.target.value)}
-                placeholder="Choose a temporary password"
-                autoComplete="new-password"
-                className="h-10"
               />
             </div>
             {addError ? <p className="text-sm text-red-600">{addError}</p> : null}

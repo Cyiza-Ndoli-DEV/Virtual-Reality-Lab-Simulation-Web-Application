@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { requireFeature } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
-import { hash } from 'bcryptjs'
 import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
 import { TEACHER_ROLE_CODE, validateSubjectId } from '@/lib/teacher-subject'
 import { normalizeUsername, validateUsername } from '@/lib/password-policy'
 import { STUDENT_ROLE_CODE } from '@/lib/api-auth'
+import { createUserWithWelcomeEmail } from '@/lib/user-registration'
 import type { Prisma } from '@prisma/client'
+
+function roleLabelForCode(code: string): string {
+  if (code === STUDENT_ROLE_CODE) return 'student'
+  if (code === TEACHER_ROLE_CODE) return 'educator'
+  if (code === 'ADMIN') return 'administrator'
+  return code.toLowerCase().replace(/_/g, ' ')
+}
 
 const DEFAULT_PAGE_SIZE = 10
 const MAX_PAGE_SIZE = 100
@@ -102,14 +109,14 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { name, email, password, role } = body
+    const { name, email, role } = body
     const usernameRaw =
       typeof body.username === 'string' ? body.username.trim() : ''
     const subjectIdRaw =
       typeof body.subjectId === 'string' ? body.subjectId.trim() : ''
 
-    if (!name || !email || !password || !role) {
-      return NextResponse.json({ error: 'All fields are required' }, { status: 400 })
+    if (!name || !email || !role) {
+      return NextResponse.json({ error: 'Name, email, and role are required' }, { status: 400 })
     }
 
     const roleCode = normalizeRoleCode(role)
@@ -149,7 +156,7 @@ export async function POST(req: NextRequest) {
       subjectId = subject.id
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findUnique({ where: { email: String(email).trim().toLowerCase() } })
     if (existing) {
       return NextResponse.json({ error: 'Email already exists' }, { status: 400 })
     }
@@ -161,19 +168,25 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const hashedPassword = await hash(password, 12)
-
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        username,
-        password: hashedPassword,
-        mustChangePassword: true,
+    let created: Awaited<ReturnType<typeof createUserWithWelcomeEmail>>
+    try {
+      created = await createUserWithWelcomeEmail({
+        name: String(name),
+        email: String(email),
         role: roleCode,
+        username,
         subjectId,
         createdById: access.session.user.id,
-      },
+        roleLabel: roleLabelForCode(roleCode),
+      })
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not create user'
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
+
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: created.user.id },
       select: {
         id: true,
         name: true,
@@ -185,7 +198,7 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json(user)
+    return NextResponse.json({ ...user, emailSent: created.emailSent })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

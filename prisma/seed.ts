@@ -215,60 +215,84 @@ async function main() {
     }
   }
 
-  // Create Quizzes
-  await prisma.quiz.upsert({
-    where: { id: 'quiz-titration-001' },
-    update: {},
-    create: {
-      id: 'quiz-titration-001',
-      title: 'Titration Quiz',
-      experimentId: titration.id,
-      questions: [
-        {
-          question: 'What indicator is used in acid-base titration?',
-          options: ['Litmus', 'Phenolphthalein', 'Methyl orange', 'All of the above'],
-          correctAnswer: 'Phenolphthalein',
+  // Create Quizzes (relational questions)
+  async function seedQuiz(
+    id: string,
+    title: string,
+    experimentId: string,
+    items: { question: string; options: string[]; correctAnswer: string }[]
+  ) {
+    await prisma.quiz.upsert({
+      where: { id },
+      update: {
+        title,
+        description: `Assessment for ${title}`,
+        passMark: 60,
+        attemptsAllowed: 3,
+        isPublished: true,
+      },
+      create: {
+        id,
+        title,
+        experimentId,
+        description: `Assessment for ${title}`,
+        passMark: 60,
+        attemptsAllowed: 3,
+        isPublished: true,
+        quizQuestions: {
+          create: items.map((item, index) => {
+            const options = item.options.map((text) => ({
+              optionText: text,
+              isCorrect: text === item.correctAnswer,
+            }))
+            return {
+              questionText: item.question,
+              questionType: 'MCQ' as const,
+              points: 1,
+              displayOrder: index,
+              options: { create: options },
+            }
+          }),
         },
-        {
-          question: 'What colour does phenolphthalein turn at the endpoint?',
-          options: ['Yellow', 'Blue', 'Pink', 'Red'],
-          correctAnswer: 'Pink',
-        },
-        {
-          question: 'What equipment is used to measure the volume of NaOH added?',
-          options: ['Pipette', 'Beaker', 'Burette', 'Graduated cylinder'],
-          correctAnswer: 'Burette',
-        },
-      ],
-    },
-  })
+      },
+    })
+  }
 
-  await prisma.quiz.upsert({
-    where: { id: 'quiz-combustion-001' },
-    update: {},
-    create: {
-      id: 'quiz-combustion-001',
-      title: 'Combustion Quiz',
-      experimentId: combustion.id,
-      questions: [
-        {
-          question: 'What is the product of magnesium combustion?',
-          options: ['MgO', 'MgCO3', 'Mg(OH)2', 'MgCl2'],
-          correctAnswer: 'MgO',
-        },
-        {
-          question: 'What colour is the flame when magnesium burns?',
-          options: ['Red', 'Blue', 'Bright white', 'Yellow'],
-          correctAnswer: 'Bright white',
-        },
-        {
-          question: 'What safety equipment must be worn during this experiment?',
-          options: ['Gloves', 'Safety goggles', 'Lab coat', 'All of the above'],
-          correctAnswer: 'Safety goggles',
-        },
-      ],
+  await seedQuiz('quiz-titration-001', 'Titration Quiz', titration.id, [
+    {
+      question: 'What indicator is used in acid-base titration?',
+      options: ['Litmus', 'Phenolphthalein', 'Methyl orange', 'All of the above'],
+      correctAnswer: 'Phenolphthalein',
     },
-  })
+    {
+      question: 'What colour does phenolphthalein turn at the endpoint?',
+      options: ['Yellow', 'Blue', 'Pink', 'Red'],
+      correctAnswer: 'Pink',
+    },
+    {
+      question: 'What equipment is used to measure the volume of NaOH added?',
+      options: ['Pipette', 'Beaker', 'Burette', 'Graduated cylinder'],
+      correctAnswer: 'Burette',
+    },
+  ])
+
+  await seedQuiz('quiz-combustion-001', 'Combustion Quiz', combustion.id, [
+    {
+      question: 'What is the product of magnesium combustion?',
+      options: ['MgO', 'MgCO3', 'Mg(OH)2', 'MgCl2'],
+      correctAnswer: 'MgO',
+    },
+    {
+      question: 'What colour is the flame when magnesium burns?',
+      options: ['Red', 'Blue', 'Bright white', 'Yellow'],
+      correctAnswer: 'Bright white',
+    },
+    {
+      question: 'What safety equipment must be worn during this experiment?',
+      options: ['Gloves', 'Safety goggles', 'Lab coat', 'All of the above'],
+      correctAnswer: 'Safety goggles',
+    },
+  ])
 
   console.log('✅ Database seeded successfully!')
   console.log('Admin: admin@vrsps.ug or username admin / Admin@1234 (change on first login)')

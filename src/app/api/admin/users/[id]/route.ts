@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { requireFeature } from '@/lib/api-auth'
+import { deleteUserAccount } from '@/lib/delete-user'
 import prisma from '@/lib/prisma'
 import { normalizeRoleCode, requireRoleDefinitionCode } from '@/lib/user-role-code'
 import { TEACHER_ROLE_CODE, validateSubjectId } from '@/lib/teacher-subject'
@@ -91,9 +92,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 })
     }
 
-    await prisma.user.delete({ where: { id } })
+    await deleteUserAccount(id)
     return NextResponse.json({ success: true })
-  } catch {
+  } catch (e) {
+    console.error('[DELETE /api/admin/users/:id]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

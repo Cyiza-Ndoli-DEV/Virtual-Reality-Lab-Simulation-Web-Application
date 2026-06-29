@@ -291,6 +291,7 @@ export default function AdminSettingsRolesPage() {
                           variant="ghost"
                           size="icon-sm"
                           className="text-slate-600 hover:text-slate-900"
+                          title="Actions"
                           aria-label={`Actions for ${r.name}`}
                         >
                           <MoreHorizontal className="size-4" />
@@ -359,7 +360,7 @@ export default function AdminSettingsRolesPage() {
                       />
                       <label htmlFor={`perm-${f.key}`} className="cursor-pointer text-sm leading-snug">
                         <span className="font-medium text-slate-900">{f.label}</span>
-                        <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
+                        <span className="app-caption mt-0.5 block font-mono text-slate-400">
                           {f.key}
                         </span>
                       </label>

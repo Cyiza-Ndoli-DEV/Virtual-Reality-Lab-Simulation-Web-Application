@@ -86,7 +86,7 @@ export function LabCard({
       )}
     >
       {isActive ? (
-        <span className="absolute right-4 top-0 -translate-y-1/2 rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white shadow-sm">
+        <span className="absolute right-4 top-0 -translate-y-1/2 rounded-md bg-blue-600 px-3 py-1 text-[0.8125rem] font-semibold text-white shadow-sm">
           Active Session
         </span>
       ) : null}
@@ -112,14 +112,14 @@ export function LabCard({
             <div className="flex flex-wrap items-center gap-2">
               <h2
                 className={cn(
-                  'text-lg font-semibold',
+                  'text-base font-semibold',
                   isLocked ? 'text-slate-500' : 'text-slate-900'
                 )}
               >
                 {lab.title}
               </h2>
               {lab.subject ? (
-                <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-xs font-medium uppercase tracking-wide text-slate-600">
+                <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 font-mono text-[0.8125rem] font-medium uppercase tracking-wide text-slate-600">
                   {lab.subject.code}
                 </span>
               ) : null}
@@ -129,8 +129,8 @@ export function LabCard({
             </div>
             <p
               className={cn(
-                'mt-1.5 line-clamp-2 text-sm leading-relaxed',
-                isLocked ? 'text-slate-400' : 'text-slate-600'
+                'app-body-muted mt-1.5 line-clamp-2',
+                isLocked && 'text-slate-400'
               )}
             >
               {lab.description}
@@ -138,13 +138,13 @@ export function LabCard({
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               {isLocked && lab.unlocksAt ? (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-500">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.8125rem] font-medium text-slate-500">
                   Unlocks {formatUnlockDate(lab.unlocksAt)}
                 </span>
               ) : null}
 
               {lab.gradeLabel ? (
-                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[0.8125rem] font-medium text-slate-600">
                   Grade: {lab.gradeLabel}
                 </span>
               ) : null}
@@ -152,7 +152,7 @@ export function LabCard({
 
             {isActive ? (
               <div className="mt-4 max-w-md">
-                <div className="mb-1.5 flex justify-between text-xs font-medium text-slate-600">
+                <div className="mb-1.5 flex justify-between text-[0.8125rem] font-medium text-slate-600">
                   <span>VR progress</span>
                   <span>{lab.progressPercent}%</span>
                 </div>
@@ -176,7 +176,7 @@ export function LabCard({
           {isLocked ? null : (
             <Button
               asChild
-              className="rounded-xl bg-blue-600 px-5 text-white hover:bg-blue-700"
+              className="h-10 rounded-xl bg-blue-600 px-5 text-[0.9375rem] text-white hover:bg-blue-700"
             >
               <Link href={labHref}>Open lab</Link>
             </Button>

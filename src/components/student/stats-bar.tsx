@@ -42,7 +42,7 @@ function StatCard({
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500 sm:text-xs">
+        <p className="text-xs font-medium uppercase tracking-wide text-slate-500 sm:text-[0.8125rem]">
           {label}
         </p>
         {children}
@@ -75,7 +75,7 @@ export function StatsBar({
           className={
             layout === 'stack'
               ? 'text-xl font-semibold text-slate-900'
-              : 'text-2xl font-semibold text-slate-900'
+              : 'text-xl font-semibold text-slate-900 sm:text-2xl'
           }
         >
           {stats.completedPracticals}
@@ -92,7 +92,7 @@ export function StatsBar({
           className={
             layout === 'stack'
               ? 'text-xl font-semibold text-slate-900'
-              : 'text-2xl font-semibold text-slate-900'
+              : 'text-xl font-semibold text-slate-900 sm:text-2xl'
           }
         >
           {formatDuration(stats.timeInVRSeconds)}
@@ -110,7 +110,7 @@ export function StatsBar({
             className={
               layout === 'stack'
                 ? 'text-xl font-semibold text-slate-900'
-                : 'text-2xl font-semibold text-slate-900'
+                : 'text-xl font-semibold text-slate-900 sm:text-2xl'
             }
           >
             {stats.averageGradePercent !== null

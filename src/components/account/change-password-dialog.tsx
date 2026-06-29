@@ -141,7 +141,7 @@ export function ChangePasswordDialog({
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md">
             <KeyRound className="h-6 w-6" />
           </div>
-          <DialogTitle className="pt-3 font-serif text-xl font-semibold text-slate-900">
+          <DialogTitle className="app-page-title pt-3">
             {forced ? 'Set your new password' : 'Change password'}
           </DialogTitle>
           <DialogDescription className="text-slate-600">
@@ -169,6 +169,7 @@ export function ChangePasswordDialog({
                 onClick={() => setShowCurrent((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                 aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                title={showCurrent ? 'Hide password' : 'Show password'}
               >
                 {showCurrent ? (
                   <EyeOff className="h-4 w-4" />
@@ -178,9 +179,8 @@ export function ChangePasswordDialog({
               </button>
             </div>
             {forced ? (
-              <p className="text-xs text-slate-500">
-                Use the temporary password you were given (e.g.{' '}
-                <span className="font-mono">Admin@1234</span> for the default admin).
+              <p className="app-caption text-slate-500">
+                Use the temporary password you were given.
               </p>
             ) : null}
           </div>
@@ -202,6 +202,7 @@ export function ChangePasswordDialog({
                 onClick={() => setShowNew((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
                 aria-label={showNew ? 'Hide password' : 'Show password'}
+                title={showNew ? 'Hide password' : 'Show password'}
               >
                 {showNew ? (
                   <EyeOff className="h-4 w-4" />
@@ -212,7 +213,7 @@ export function ChangePasswordDialog({
             </div>
           </div>
 
-          <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3 text-xs">
+          <ul className="app-caption space-y-1.5 rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
             {policyChecks.map((check) => (
               <li
                 key={check.key}

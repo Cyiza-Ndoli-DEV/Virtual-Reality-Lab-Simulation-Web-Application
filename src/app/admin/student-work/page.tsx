@@ -205,6 +205,7 @@ export default function AdminStudentWorkPage() {
                         variant="ghost"
                         size="icon-sm"
                         className="text-blue-600 hover:bg-blue-50"
+                        title="View submission"
                         aria-label="View submission"
                         onClick={() => void openView(r)}
                       >

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { requireRegisterStudentsAccess, STUDENT_ROLE_CODE } from '@/lib/api-auth'
+import { deleteUserAccount } from '@/lib/delete-user'
 import prisma from '@/lib/prisma'
 
 async function getStudentOr404(id: string) {
@@ -83,9 +84,10 @@ export async function DELETE(
       return NextResponse.json({ error: 'Student not found' }, { status: 404 })
     }
 
-    await prisma.user.delete({ where: { id } })
+    await deleteUserAccount(id)
     return NextResponse.json({ ok: true })
-  } catch {
+  } catch (e) {
+    console.error('[DELETE /api/admin/students/:id]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

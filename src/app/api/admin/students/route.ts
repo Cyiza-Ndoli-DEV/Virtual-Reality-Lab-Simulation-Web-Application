@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { requireRegisterStudentsAccess, STUDENT_ROLE_CODE } from '@/lib/api-auth'
 import prisma from '@/lib/prisma'
-import { hash } from 'bcryptjs'
 import { requireRoleDefinitionCode } from '@/lib/user-role-code'
 import { normalizeUsername, validateUsername } from '@/lib/password-policy'
+import { createUserWithWelcomeEmail } from '@/lib/user-registration'
 
 export async function GET() {
   try {
@@ -42,11 +42,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: access.status })
     }
 
-    const { name, email, password, username: usernameRaw } = await req.json()
+    const { name, email, username: usernameRaw } = await req.json()
 
-    if (!name || !email || !password || !usernameRaw) {
+    if (!name || !email || !usernameRaw) {
       return NextResponse.json(
-        { error: 'Name, email, username, and password are required' },
+        { error: 'Name, email, and username are required' },
         { status: 400 }
       )
     }
@@ -75,19 +75,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Username already exists' }, { status: 400 })
     }
 
-    const hashedPassword = await hash(password, 12)
-
-    const user = await prisma.user.create({
-      data: {
-        name: String(name).trim(),
-        email: String(email).trim().toLowerCase(),
-        username,
-        password: hashedPassword,
-        mustChangePassword: true,
+    let created: Awaited<ReturnType<typeof createUserWithWelcomeEmail>>
+    try {
+      created = await createUserWithWelcomeEmail({
+        name: String(name),
+        email: String(email),
         role: STUDENT_ROLE_CODE,
+        username,
         createdById: session!.user!.id,
-      },
-    })
+        roleLabel: 'student',
+      })
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Could not register student'
+      return NextResponse.json({ error: message }, { status: 500 })
+    }
+
+    const user = created.user
 
     return NextResponse.json({
       id: user.id,
@@ -97,6 +101,7 @@ export async function POST(req: NextRequest) {
       role: user.role,
       createdAt: user.createdAt.toISOString(),
       _count: { sessions: 0 },
+      emailSent: created.emailSent,
     })
   } catch {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

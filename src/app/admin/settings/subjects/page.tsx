@@ -271,6 +271,7 @@ export default function AdminSettingsSubjectsPage() {
                         variant="ghost"
                         size="icon-sm"
                         className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                        title="Edit"
                         aria-label={`Edit ${r.name}`}
                         onClick={() => openEdit(r)}
                       >
@@ -281,6 +282,7 @@ export default function AdminSettingsSubjectsPage() {
                         variant="ghost"
                         size="icon-sm"
                         className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Delete"
                         aria-label={`Delete ${r.name}`}
                         onClick={() => {
                           setDeleteError('')

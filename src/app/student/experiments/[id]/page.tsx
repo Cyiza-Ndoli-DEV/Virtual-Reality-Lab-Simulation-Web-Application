@@ -15,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { LabQuizzesSection } from '@/components/student/lab-quizzes-section'
 import { LabWorkflowStatusBadge } from '@/components/student/lab-workflow-status-badge'
+import type { StudentQuizSummary } from '@/lib/quiz'
 import type { QuestionnaireAnswers, QuestionnaireConfig } from '@/lib/questionnaire'
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
 import type { LabStatus } from '@/lib/student-lab-status'
@@ -32,6 +34,8 @@ type ExperimentDetail = {
   progressPercent: number
   hasQuestionnaire: boolean
   hasReportAssignment: boolean
+  hasQuizzes: boolean
+  quizzes: StudentQuizSummary[]
   workflowStatus: LabWorkflowStatus
   reportWorkflowStatus: LabWorkflowStatus
   questionnaire: {
@@ -92,9 +96,9 @@ export default function StudentExperimentPage() {
   return (
     <ExperimentLabShell experimentId={experimentId}>
       {loading ? (
-        <p className="text-sm text-slate-500">Loading lab details…</p>
+        <p className="app-body-muted">Loading lab details…</p>
       ) : !data ? (
-        <p className="text-sm text-slate-500">Experiment not found.</p>
+        <p className="app-body-muted">Experiment not found.</p>
       ) : (
         <ExperimentDetailContent
           data={data}
@@ -140,11 +144,28 @@ function ExperimentDetailContent({
     onCompleted: onLabUpdated,
   }
 
+  const quizCards = data.hasQuizzes ? (
+    <LabQuizzesSection
+      quizzes={data.quizzes}
+      experimentId={experiment.id}
+      disabled={!vrCompleted}
+      embedded
+    />
+  ) : null
+
+  function PostLabGrid({ children }: { children: React.ReactNode }) {
+    const items = Array.isArray(children)
+      ? children.filter(Boolean)
+      : [children].filter(Boolean)
+    if (items.length === 0) return null
+    return <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">{items}</div>
+  }
+
   if (status === 'locked') {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <Lock className="mx-auto h-10 w-10 text-slate-300" />
-        <p className="mt-4 text-sm text-slate-600">This lab is not available yet.</p>
+        <p className="app-body mt-4">This lab is not available yet.</p>
       </div>
     )
   }
@@ -159,8 +180,8 @@ function ExperimentDetailContent({
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="font-semibold">Lab report reviewed</p>
-              <p className="mt-1 text-sm text-emerald-800">
+              <p className="app-card-title">Lab report reviewed</p>
+              <p className="app-body mt-1 text-emerald-800">
                 Your teacher has reviewed your written report.
               </p>
             </div>
@@ -169,14 +190,15 @@ function ExperimentDetailContent({
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div>
-              <p className="font-semibold">Report awaiting review</p>
-              <p className="mt-1 text-sm text-amber-800">
+              <p className="app-card-title">Report awaiting review</p>
+              <p className="app-body mt-1 text-amber-800">
                 Your lab report was submitted and is pending teacher review.
               </p>
             </div>
           </div>
         )}
         <SubmittedReportCard report={report} experimentId={experiment.id} />
+        {quizCards ? <PostLabGrid>{quizCards}</PostLabGrid> : null}
         <VrPerformanceBanner
           session={vrSession}
           onReview={() => setVrLogOpen(true)}
@@ -205,8 +227,8 @@ function ExperimentDetailContent({
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
             <div>
-              <p className="font-semibold">Lab marked complete</p>
-              <p className="mt-1 text-sm text-emerald-800">
+              <p className="app-card-title">Lab marked complete</p>
+              <p className="app-body mt-1 text-emerald-800">
                 Your teacher has reviewed and completed this lab. Your questionnaire is
                 locked below.
               </p>
@@ -216,8 +238,8 @@ function ExperimentDetailContent({
           <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
             <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
             <div>
-              <p className="font-semibold">Awaiting teacher review</p>
-              <p className="mt-1 text-sm text-amber-800">
+              <p className="app-card-title">Awaiting teacher review</p>
+              <p className="app-body mt-1 text-amber-800">
                 Your questionnaire was submitted and is pending. You can review your
                 answers below while your teacher marks the lab complete.
               </p>
@@ -236,11 +258,16 @@ function ExperimentDetailContent({
           <div className="mt-6">
             <SubmittedReportCard report={report} experimentId={experiment.id} />
           </div>
-        ) : report && !reportSubmitted && vrCompleted ? (
-          <div className="mt-6">
-            <PendingReportCta experimentId={experiment.id} />
-          </div>
         ) : null}
+
+        {report && !reportSubmitted && vrCompleted ? (
+          <PostLabGrid>
+            <PendingReportCta experimentId={experiment.id} />
+            {quizCards}
+          </PostLabGrid>
+        ) : (
+          quizCards ? <PostLabGrid>{quizCards}</PostLabGrid> : null
+        )}
 
         <VrPerformanceBanner
           session={vrSession}
@@ -266,13 +293,13 @@ function ExperimentDetailContent({
               <Play className="h-6 w-6 fill-current" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="font-semibold text-slate-900">VR session in progress</p>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              <p className="app-card-title">VR session in progress</p>
+              <p className="app-body mt-2 text-slate-600">
                 Continue this practical on the <strong>VRSPS VR headset application</strong>.
                 The web portal cannot start or control VR directly — your progress syncs when
                 you use the lab app.
               </p>
-              <p className="mt-3 text-sm font-medium text-blue-700">
+              <p className="mt-3 text-[0.9375rem] font-medium text-blue-700">
                 Progress: {data.progressPercent}%
               </p>
               <div className="mt-5 border-t border-blue-200/80 pt-5">
@@ -282,18 +309,21 @@ function ExperimentDetailContent({
           </div>
         </div>
 
-        {questionnaire ? (
-          <PendingQuestionnaireCta
-            experimentId={data.experiment.id}
-            disabled={!vrCompleted}
-          />
-        ) : null}
-        {report && !reportSubmitted ? (
-          <PendingReportCta
-            experimentId={data.experiment.id}
-            disabled={!vrCompleted}
-          />
-        ) : null}
+        <PostLabGrid>
+          {questionnaire ? (
+            <PendingQuestionnaireCta
+              experimentId={data.experiment.id}
+              disabled={!vrCompleted}
+            />
+          ) : null}
+          {report && !reportSubmitted ? (
+            <PendingReportCta
+              experimentId={data.experiment.id}
+              disabled={!vrCompleted}
+            />
+          ) : null}
+          {quizCards}
+        </PostLabGrid>
       </>
     )
   }
@@ -308,7 +338,7 @@ function ExperimentDetailContent({
       <>
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm">
+          <p className="app-body text-amber-950">
             You have finished the virtual practical. Write your lab report while your
             observations are still fresh.
           </p>
@@ -316,7 +346,10 @@ function ExperimentDetailContent({
         <div className="mb-4">
           <LabWorkflowStatusBadge status={reportWorkflowStatus} />
         </div>
-        <PendingReportCta experimentId={data.experiment.id} />
+        <PostLabGrid>
+          <PendingReportCta experimentId={data.experiment.id} />
+          {quizCards}
+        </PostLabGrid>
         <VrPerformanceBanner
           session={vrSession}
           onReview={() => setVrLogOpen(true)}
@@ -340,7 +373,7 @@ function ExperimentDetailContent({
       <>
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="text-sm">
+          <p className="app-body text-amber-950">
             You have finished the virtual practical. Complete the post-lab questionnaire
             below while your observations are still fresh.
           </p>
@@ -348,10 +381,13 @@ function ExperimentDetailContent({
         <div className="mb-4">
           <LabWorkflowStatusBadge status={workflowStatus} />
         </div>
-        <PendingQuestionnaireCta experimentId={data.experiment.id} />
-        {report && !reportSubmitted ? (
-          <PendingReportCta experimentId={data.experiment.id} />
-        ) : null}
+        <PostLabGrid>
+          <PendingQuestionnaireCta experimentId={data.experiment.id} />
+          {report && !reportSubmitted ? (
+            <PendingReportCta experimentId={data.experiment.id} />
+          ) : null}
+          {quizCards}
+        </PostLabGrid>
         <VrPerformanceBanner
           session={vrSession}
           onReview={() => setVrLogOpen(true)}
@@ -374,11 +410,11 @@ function ExperimentDetailContent({
             <Headset className="h-6 w-6" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-slate-900">Start in the VR lab app</p>
-            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            <p className="app-card-title">Start in the VR lab app</p>
+            <p className="app-body mt-2 text-slate-600">
               {experiment.description}
             </p>
-            <p className="mt-4 text-sm text-slate-500">
+            <p className="app-body-muted mt-4">
               Open the <strong>VRSPS VR application</strong> on your headset or lab PC to run
               this practical. When you are done, mark it complete here, then fill in the
               questionnaire.
@@ -395,23 +431,26 @@ function ExperimentDetailContent({
       </div>
 
       {!data.hasQuestionnaire && !data.hasReportAssignment ? (
-        <p className="mt-4 text-sm text-slate-500">
+        <p className="app-body-muted mt-4">
           Post-lab work (questionnaire or written report) has not been set up for this
           experiment yet.
         </p>
       ) : null}
-      {data.hasQuestionnaire ? (
-        <PendingQuestionnaireCta
-          experimentId={data.experiment.id}
-          disabled={!vrCompleted}
-        />
-      ) : null}
-      {data.hasReportAssignment && !reportSubmitted ? (
-        <PendingReportCta
-          experimentId={data.experiment.id}
-          disabled={!vrCompleted}
-        />
-      ) : null}
+      <PostLabGrid>
+        {data.hasQuestionnaire ? (
+          <PendingQuestionnaireCta
+            experimentId={data.experiment.id}
+            disabled={!vrCompleted}
+          />
+        ) : null}
+        {data.hasReportAssignment && !reportSubmitted ? (
+          <PendingReportCta
+            experimentId={data.experiment.id}
+            disabled={!vrCompleted}
+          />
+        ) : null}
+        {quizCards}
+      </PostLabGrid>
     </>
   )
 }
@@ -424,16 +463,16 @@ function PendingReportCta({
   disabled?: boolean
 }) {
   return (
-    <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-      <p className="text-sm font-medium text-slate-900">Written lab report</p>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6">
+      <p className="app-card-title">Written lab report</p>
+      <p className="app-body-muted mt-1.5">
         {disabled
           ? 'Available after you complete the virtual practical in VR.'
           : 'Submit your report about the VR practical you completed.'}
       </p>
       <Button
         asChild={!disabled}
-        className="mt-4 rounded-xl bg-teal-600 text-white hover:bg-teal-700"
+        className="mt-5 h-10 rounded-xl bg-teal-600 text-[0.9375rem] text-white hover:bg-teal-700"
         disabled={disabled}
       >
         {disabled ? (
@@ -457,16 +496,16 @@ function SubmittedReportCard({
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-      <p className="text-sm font-medium text-slate-900">{report.title}</p>
+      <p className="app-card-title">{report.title}</p>
       {report.teacherFeedback ? (
         <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
-          <p className="text-xs font-semibold text-blue-800">Teacher feedback</p>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-blue-900">
+          <p className="app-caption font-semibold text-blue-800">Teacher feedback</p>
+          <p className="app-body mt-1 whitespace-pre-wrap text-blue-900">
             {report.teacherFeedback}
           </p>
         </div>
       ) : null}
-      <p className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
+      <p className="app-body mt-4 whitespace-pre-wrap">
         {report.content}
       </p>
       <Button asChild variant="outline" size="sm" className="mt-4">
@@ -484,16 +523,16 @@ function PendingQuestionnaireCta({
   disabled?: boolean
 }) {
   return (
-    <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
-      <p className="text-sm font-medium text-slate-900">Post-lab questionnaire</p>
-      <p className="mt-1 text-sm text-slate-500">
+    <div className="flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6">
+      <p className="app-card-title">Post-lab questionnaire</p>
+      <p className="app-body-muted mt-1.5">
         {disabled
           ? 'Available after you complete the virtual practical in VR.'
           : 'Record your design, results, and analysis for this practical.'}
       </p>
       <Button
         asChild={!disabled}
-        className="mt-4 rounded-xl bg-blue-600 text-white hover:bg-blue-700"
+        className="mt-5 h-10 rounded-xl bg-blue-600 text-[0.9375rem] text-white hover:bg-blue-700"
         disabled={disabled}
       >
         {disabled ? (
@@ -527,7 +566,7 @@ function VrLogDialog({
         <DialogHeader>
           <DialogTitle>VR performance log — {experimentTitle}</DialogTitle>
         </DialogHeader>
-        <dl className="grid gap-3 text-sm">
+        <dl className="app-body grid gap-3">
           <div className="flex justify-between border-b border-slate-100 py-2">
             <dt className="text-slate-500">Time in lab</dt>
             <dd className="font-medium text-slate-900">{session.timeTaken}s</dd>

@@ -12,7 +12,7 @@ export async function getStudentProfileStats(studentId: string) {
     }),
     prisma.quizAttempt.findMany({
       where: { studentId },
-      select: { score: true, totalQuestions: true },
+      select: { score: true, totalPoints: true, percentage: true },
     }),
   ])
 
@@ -26,8 +26,11 @@ export async function getStudentProfileStats(studentId: string) {
   }
 
   const gradePercents = quizAttempts
-    .filter((a) => a.totalQuestions > 0)
-    .map((a) => Math.round((a.score / a.totalQuestions) * 100))
+    .map((a) =>
+      a.percentage ??
+      (a.totalPoints > 0 ? Math.round((a.score / a.totalPoints) * 100) : null)
+    )
+    .filter((p): p is number => p !== null)
 
   const averageGradePercent =
     gradePercents.length > 0

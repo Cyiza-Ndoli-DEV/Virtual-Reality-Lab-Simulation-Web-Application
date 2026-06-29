@@ -44,12 +44,13 @@ export async function getStudentExperiments(
         subject: { select: { code: true, name: true, status: true } },
         questionnaire: { select: { id: true } },
         quizzes: {
+          where: { isPublished: true },
           select: {
             attempts: {
               where: { studentId },
               orderBy: { attemptedAt: 'desc' },
               take: 1,
-              select: { score: true, totalQuestions: true },
+              select: { score: true, totalPoints: true, percentage: true },
             },
           },
         },
@@ -121,12 +122,16 @@ export async function getStudentExperiments(
     const quizAttempt = e.quizzes[0]?.attempts[0]
     let gradeLabel: string | null = null
     let gradePercent: number | null = null
-    if (quizAttempt && quizAttempt.totalQuestions > 0) {
-      gradePercent = Math.round(
-        (quizAttempt.score / quizAttempt.totalQuestions) * 100
-      )
-      gradeLabel = percentToGradeLabel(gradePercent)
-      gradePercents.push(gradePercent)
+    if (quizAttempt) {
+      gradePercent =
+        quizAttempt.percentage ??
+        (quizAttempt.totalPoints > 0
+          ? Math.round((quizAttempt.score / quizAttempt.totalPoints) * 100)
+          : null)
+      if (gradePercent !== null) {
+        gradeLabel = percentToGradeLabel(gradePercent)
+        gradePercents.push(gradePercent)
+      }
     }
 
     const steps = Array.isArray(e.steps) ? (e.steps as StepJson[]) : []

@@ -128,7 +128,7 @@ export default function AdminProfilePage() {
   return (
     <AccountSettingsLayout>
       <div className="flex h-full flex-col px-6 py-8 sm:px-10">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Account</h1>
+        <h1 className="app-page-title">Account</h1>
 
         <AvatarUploadSection
           avatarUrl={me.avatarUrl}
@@ -193,7 +193,7 @@ export default function AdminProfilePage() {
 
         <section className="flex flex-col gap-4 border-b border-slate-200 py-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-lg">
-            <h2 className="text-sm font-semibold text-slate-900">Password</h2>
+            <h2 className="app-section-title">Password</h2>
             <p className="mt-1 text-sm text-slate-500">
               Log in with your password instead of using temporary login codes
             </p>

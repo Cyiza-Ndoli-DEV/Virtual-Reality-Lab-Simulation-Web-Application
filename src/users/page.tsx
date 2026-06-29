@@ -66,7 +66,7 @@ export default function AdminUsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-800">Users</h1>
+          <h1 className="app-page-title text-slate-800">Users</h1>
           <p className="text-sm text-slate-500 mt-1">Manage all system users</p>
         </div>
         <button
@@ -115,6 +115,8 @@ export default function AdminUsersPage() {
                     <button
                       onClick={() => handleDelete(user.id)}
                       className="text-red-400 hover:text-red-600 transition-colors"
+                      aria-label="Delete user"
+                      title="Delete"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
@@ -130,7 +132,7 @@ export default function AdminUsersPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md mx-4 shadow-xl">
-            <h2 className="text-lg font-semibold text-slate-800 mb-4">Add New User</h2>
+            <h2 className="app-section-title mb-4 text-slate-800">Add New User</h2>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
                 <label className="text-sm text-slate-600 block mb-1.5">Full Name</label>

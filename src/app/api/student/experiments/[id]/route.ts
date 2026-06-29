@@ -4,6 +4,8 @@ import prisma from '@/lib/prisma'
 import { parseQuestionnaireConfig } from '@/lib/questionnaire'
 import { deriveLabWorkflowStatus } from '@/lib/lab-workflow-status'
 import { deriveLabProgress } from '@/lib/questionnaire-display'
+import { areAllQuizzesFinished } from '@/lib/lab-progress-steps'
+import { serializeStudentQuizSummary } from '@/lib/quiz'
 import {
   percentToGradeLabel,
   sessionProgressPercent,
@@ -36,12 +38,20 @@ export async function GET(
           select: { id: true, title: true, instructions: true },
         },
         quizzes: {
-          select: {
+          where: { isPublished: true },
+          orderBy: { createdAt: 'asc' },
+          include: {
+            _count: { select: { quizQuestions: true } },
             attempts: {
               where: { studentId },
               orderBy: { attemptedAt: 'desc' },
-              take: 1,
-              select: { score: true, totalQuestions: true },
+              select: {
+                score: true,
+                totalPoints: true,
+                percentage: true,
+                passed: true,
+                attemptedAt: true,
+              },
             },
           },
         },
@@ -132,14 +142,22 @@ export async function GET(
       reviewStatus: submission?.reviewStatus ?? null,
     })
 
-    const quizAttempt = experiment.quizzes[0]?.attempts[0]
+    const quizSummaries = experiment.quizzes
+      .filter((q) => q._count.quizQuestions > 0)
+      .map((q) => serializeStudentQuizSummary(q))
+
+    const quizAttempt = experiment.quizzes.flatMap((q) => q.attempts)[0]
     let gradeLabel: string | null = null
     let gradePercent: number | null = null
-    if (quizAttempt && quizAttempt.totalQuestions > 0) {
-      gradePercent = Math.round(
-        (quizAttempt.score / quizAttempt.totalQuestions) * 100
-      )
-      gradeLabel = percentToGradeLabel(gradePercent)
+    if (quizAttempt) {
+      gradePercent =
+        quizAttempt.percentage ??
+        (quizAttempt.totalPoints > 0
+          ? Math.round((quizAttempt.score / quizAttempt.totalPoints) * 100)
+          : null)
+      if (gradePercent !== null) {
+        gradeLabel = percentToGradeLabel(gradePercent)
+      }
     }
 
     const steps = Array.isArray(experiment.steps) ? (experiment.steps as StepJson[]) : []
@@ -175,6 +193,8 @@ export async function GET(
       reportSubmitted: Boolean(reportRow),
       reportReviewed: reportRow?.reviewStatus === 'COMPLETED',
       hasReportAssignment,
+      hasQuizzes: quizSummaries.length > 0,
+      quizzesCompleted: areAllQuizzesFinished(quizSummaries),
       hasFinalGrade: gradePercent !== null,
     })
 
@@ -193,6 +213,8 @@ export async function GET(
       progressPercent,
       hasQuestionnaire,
       hasReportAssignment,
+      hasQuizzes: quizSummaries.length > 0,
+      quizzes: quizSummaries,
       workflowStatus,
       reportWorkflowStatus,
       questionnaire: config

@@ -12,6 +12,6 @@ export default function TeacherDashboardRedirect() {
   }, [router])
 
   return (
-    <p className="text-sm text-slate-500">Redirecting to the educator portal…</p>
+    <p className="app-body-muted">Redirecting to the educator portal…</p>
   )
 }

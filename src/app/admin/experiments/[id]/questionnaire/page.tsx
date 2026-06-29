@@ -161,7 +161,7 @@ export default function AdminExperimentQuestionnairePage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
           Post-practical questionnaire
         </p>
-        <h2 className="mt-1 text-lg font-semibold text-slate-900">
+        <h2 className="app-section-title mt-1">
           {experimentTitle || 'Experiment'}
         </h2>
         <p className="mt-2 text-sm text-slate-500">
@@ -212,6 +212,7 @@ export default function AdminExperimentQuestionnairePage() {
                 variant="ghost"
                 size="icon-sm"
                 className="text-red-600 hover:bg-red-50"
+                title="Remove section"
                 aria-label="Remove section"
                 onClick={() => removeSection(index)}
                 disabled={config.sections.length <= 1}

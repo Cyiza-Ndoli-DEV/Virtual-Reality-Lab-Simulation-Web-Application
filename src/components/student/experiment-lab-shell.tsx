@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { LabProgressSidebar, type LabProgress } from '@/components/student/lab-progress-sidebar'
+import { LabProgressTimeline } from '@/components/student/lab-progress-timeline'
 import { ExperimentLabRefreshProvider } from '@/components/student/experiment-lab-refresh-context'
+import type { LabProgress } from '@/lib/questionnaire-display'
+import type { StudentQuizSummary } from '@/lib/quiz'
 
 export interface ExperimentLabMeta {
   experiment: {
@@ -17,6 +19,7 @@ export interface ExperimentLabMeta {
   labProgress: LabProgress
   questionnaireTitle: string | null
   reportTitle: string | null
+  quizzes: StudentQuizSummary[]
 }
 
 export function ExperimentLabShell({
@@ -44,6 +47,7 @@ export function ExperimentLabShell({
       labProgress: data.labProgress,
       questionnaireTitle: data.questionnaire?.title ?? null,
       reportTitle: data.report?.title ?? null,
+      quizzes: Array.isArray(data.quizzes) ? data.quizzes : [],
     })
   }, [experimentId])
 
@@ -56,7 +60,7 @@ export function ExperimentLabShell({
   if (error) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
-        <p className="text-sm text-slate-600">{error}</p>
+        <p className="app-body-muted">{error}</p>
         <Button asChild variant="outline" className="mt-4">
           <Link href="/student/dashboard">Back to my labs</Link>
         </Button>
@@ -65,7 +69,7 @@ export function ExperimentLabShell({
   }
 
   if (!meta) {
-    return <p className="text-sm text-slate-500">Loading…</p>
+    return <p className="app-body-muted">Loading…</p>
   }
 
   const sub =
@@ -78,26 +82,22 @@ export function ExperimentLabShell({
 
   return (
     <ExperimentLabRefreshProvider refresh={load}>
-      <div>
-        <Button asChild variant="ghost" className="mb-6 -ml-2 text-slate-600 hover:text-slate-900">
+      <div className="w-full">
+        <Button asChild variant="ghost" className="app-body-muted mb-6 -ml-2 hover:text-slate-900">
           <Link href="/student/dashboard">
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Back to my labs
           </Link>
         </Button>
 
-        <div className="grid gap-8 lg:grid-cols-[240px_1fr]">
-          <LabProgressSidebar progress={meta.labProgress} />
-          <div className="min-w-0">
-            <header className="mb-6">
-              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                {meta.experiment.title}
-              </h1>
-              {sub ? <p className="mt-1 text-sm text-slate-500">{sub}</p> : null}
-            </header>
-            {children}
-          </div>
-        </div>
+        <header className="mb-5">
+          <h1 className="app-page-title">{meta.experiment.title}</h1>
+          {sub ? <p className="app-page-subtitle mt-1">{sub}</p> : null}
+        </header>
+
+        <LabProgressTimeline progress={meta.labProgress} quizzes={meta.quizzes} />
+
+        <div className="mt-8">{children}</div>
       </div>
     </ExperimentLabRefreshProvider>
   )

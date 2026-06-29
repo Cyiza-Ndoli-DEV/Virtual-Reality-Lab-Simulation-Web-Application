@@ -49,7 +49,7 @@ export function LabProgressSidebar({ progress }: { progress: LabProgress }) {
   const steps = visibleSteps(progress)
   return (
     <aside className="rounded-2xl border border-slate-200 bg-slate-50/80 p-5">
-      <h2 className="text-sm font-semibold text-slate-900">Lab Progress</h2>
+      <h2 className="app-section-title">Lab Progress</h2>
       <ul className="mt-4 space-y-4">
         {steps.map(({ key, label, state }) => {
           return (
@@ -57,7 +57,7 @@ export function LabProgressSidebar({ progress }: { progress: LabProgress }) {
               <StepIcon state={state as ProgressStepState} />
               <span
                 className={cn(
-                  'text-sm font-medium',
+                  'text-[0.9375rem] font-medium',
                   state === 'active' && 'text-blue-700',
                   state === 'completed' && 'text-slate-800',
                   state === 'pending' && 'text-slate-400'

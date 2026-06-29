@@ -40,8 +40,8 @@ export function LoginAuthShell({
             <Icon className="h-5 w-5 text-white" strokeWidth={2.25} />
           </div>
 
-          <h1 className="mt-3 text-lg font-semibold text-slate-800">{title}</h1>
-          <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
+          <h1 className="app-page-title mt-3 text-slate-800">{title}</h1>
+          <p className="app-body-muted mt-1">{subtitle}</p>
         </div>
 
         <div className="mt-4">{children}</div>
@@ -51,7 +51,7 @@ export function LoginAuthShell({
             <div className="flex gap-3">
               <Link
                 href={cancelHref}
-                className="flex h-10 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                className="flex h-10 flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white text-[0.9375rem] font-semibold text-slate-700 transition-colors hover:bg-slate-50"
               >
                 {cancelLabel}
               </Link>
@@ -60,7 +60,7 @@ export function LoginAuthShell({
                 form={submitForm}
                 disabled={loading || submitDisabled}
                 className={cn(
-                  'flex h-10 flex-1 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60'
+                  'flex h-10 flex-1 items-center justify-center rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 text-[0.9375rem] font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60'
                 )}
               >
                 {loading ? 'Please wait…' : submitLabel}
@@ -74,12 +74,12 @@ export function LoginAuthShell({
 }
 
 export const authFieldClassName =
-  'h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 text-sm text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100'
+  'h-10 w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 text-[0.9375rem] text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100'
 
 export const authAlertClassName = {
-  error: 'rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600',
+  error: 'rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[0.9375rem] text-red-600',
   success:
-    'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700',
+    'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[0.9375rem] text-emerald-700',
   warning:
-    'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800',
+    'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[0.9375rem] text-amber-800',
 }

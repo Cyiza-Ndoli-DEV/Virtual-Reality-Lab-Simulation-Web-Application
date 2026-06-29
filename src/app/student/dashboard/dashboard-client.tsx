@@ -38,28 +38,48 @@ function firstName(fullName: string | null) {
   return fullName.trim().split(/\s+/)[0]
 }
 
-function LabWorkflowGuide({ className }: { className?: string }) {
+function LabWorkflowGuide({
+  className,
+  variant = 'vertical',
+}: {
+  className?: string
+  variant?: 'vertical' | 'horizontal'
+}) {
   return (
     <section
       className={cn(
-        'rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm',
+        'rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6',
         className
       )}
     >
-      <h2 className="text-sm font-semibold text-slate-900">How it works</h2>
-      <p className="mt-1 text-xs leading-relaxed text-slate-500">
+      <h2 className="app-section-title">How it works</h2>
+      <p className="app-body-muted mt-1">
         Follow these steps for each practical assigned to you.
       </p>
-      <ol className="mt-4 space-y-4">
+      <ol
+        className={cn(
+          'mt-4',
+          variant === 'horizontal'
+            ? 'grid gap-4 sm:grid-cols-3'
+            : 'space-y-4'
+        )}
+      >
         {WORKFLOW_STEPS.map((step, index) => (
-          <li key={step.title} className="flex gap-3">
+          <li
+            key={step.title}
+            className={cn(
+              'flex gap-3',
+              variant === 'horizontal' &&
+                'flex-col rounded-xl border border-slate-100 bg-slate-50/60 p-4'
+            )}
+          >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
               <step.icon className="h-4 w-4" aria-hidden />
             </div>
             <div className="min-w-0 pt-0.5">
-              <p className="text-xs font-medium text-slate-400">Step {index + 1}</p>
-              <p className="text-sm font-medium text-slate-900">{step.title}</p>
-              <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+              <p className="app-caption font-medium text-slate-400">Step {index + 1}</p>
+              <p className="text-[0.9375rem] font-medium text-slate-900">{step.title}</p>
+              <p className="app-body-muted mt-0.5">
                 {step.description}
               </p>
             </div>
@@ -90,31 +110,45 @@ export function StudentDashboardClient({
   )
 
   const labGridClass =
-    sortedLabs.length > 1
-      ? 'grid gap-4 sm:grid-cols-2'
-      : 'grid gap-4'
+    sortedLabs.length === 1
+      ? 'grid gap-4'
+      : sortedLabs.length === 2
+        ? 'grid gap-4 sm:grid-cols-2'
+        : 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
 
   return (
-    <div className="flex flex-1 flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div className="flex min-w-0 flex-col gap-6">
-        <header className="space-y-1">
-          <p className="text-sm font-medium text-blue-600">
-            {greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">My labs</h1>
-          <p className="max-w-2xl text-sm leading-relaxed text-slate-500">
-            Open a lab to view your VR results, complete questionnaires, and submit
-            written work.
-          </p>
-        </header>
+    <div className="flex flex-1 flex-col gap-8">
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+          <header className="space-y-1.5">
+            <p className="app-eyebrow">
+              {greetingName ? `Welcome back, ${greetingName}` : 'Welcome back'}
+            </p>
+            <h1 className="app-page-title">My labs</h1>
+            <p className="app-page-subtitle max-w-xl">
+              Open a lab to view your VR results, complete questionnaires, and submit
+              written work.
+            </p>
+          </header>
+          <div className="w-full shrink-0 xl:max-w-2xl">
+            <StatsBar stats={stats} layout="row" />
+          </div>
+        </div>
+      </section>
 
-        <div className="lg:hidden">
-          <StatsBar stats={stats} layout="row" />
+      <section className="flex min-h-0 flex-1 flex-col gap-4">
+        <div className="flex items-baseline justify-between gap-4">
+          <h2 className="app-label">Assigned experiments</h2>
+          {sortedLabs.length > 0 ? (
+            <p className="app-caption text-slate-400">
+              {sortedLabs.length} {sortedLabs.length === 1 ? 'lab' : 'labs'}
+            </p>
+          ) : null}
         </div>
 
         {sortedLabs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
-            <p className="text-sm text-slate-500">No experiments are available yet.</p>
+          <div className="flex flex-1 items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
+            <p className="app-body-muted">No experiments are available yet.</p>
           </div>
         ) : (
           <ul className={cn(labGridClass, 'list-none p-0')}>
@@ -125,21 +159,9 @@ export function StudentDashboardClient({
             ))}
           </ul>
         )}
+      </section>
 
-        <div className="lg:hidden">
-          <LabWorkflowGuide />
-        </div>
-      </div>
-
-      <aside className="hidden shrink-0 space-y-5 lg:block lg:sticky lg:top-8">
-        <section>
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-            Your progress
-          </h2>
-          <StatsBar stats={stats} layout="stack" />
-        </section>
-        <LabWorkflowGuide />
-      </aside>
+      <LabWorkflowGuide variant="horizontal" className="mt-auto" />
     </div>
   )
 }
