@@ -23,6 +23,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
+import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
+import { GradeBreakdown } from '@/components/grading/grade-breakdown'
+import { TeacherMarkField } from '@/components/grading/teacher-mark-field'
 import { cn } from '@/lib/utils'
 
 type Filter = 'PENDING' | 'COMPLETED' | 'ALL'
@@ -44,6 +47,9 @@ interface ReportListRow {
 interface ReportDetail extends ReportListRow {
   content: string
   teacherFeedback: string | null
+  marksAwarded: number | null
+  marksMax: number
+  gradeBreakdown: FinalGradeBreakdown | null
   assignment: { title: string; instructions: string }
   vrSession: {
     timeTaken: number
@@ -68,6 +74,7 @@ export default function AdminReportsPage() {
   const [viewRow, setViewRow] = useState<ReportDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
+  const [marksInput, setMarksInput] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -95,53 +102,66 @@ export default function AdminReportsPage() {
     setViewLoading(true)
     setViewRow(null)
     setFeedback('')
+    setMarksInput('')
     try {
       const res = await fetch(`/api/admin/reports/${row.id}`)
       if (res.ok) {
         const detail = (await res.json()) as ReportDetail
         setViewRow(detail)
         setFeedback(detail.teacherFeedback ?? '')
+        setMarksInput(
+          detail.marksAwarded !== null ? String(detail.marksAwarded) : ''
+        )
       }
     } finally {
       setViewLoading(false)
     }
   }
 
-  async function markComplete(id: string) {
+  async function saveReportReview(
+    id: string,
+    options: { complete?: boolean; feedbackOnly?: boolean } = {}
+  ) {
     setBusyId(id)
     try {
+      const marksAwarded =
+        marksInput.trim() === '' ? null : Number.parseInt(marksInput, 10)
       const res = await fetch(`/api/admin/reports/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          reviewStatus: 'COMPLETED',
-          teacherFeedback: feedback.trim() || null,
+          ...(options.complete ? { reviewStatus: 'COMPLETED' } : {}),
+          ...(options.feedbackOnly || options.complete
+            ? { teacherFeedback: feedback.trim() || null }
+            : {}),
+          ...(!options.feedbackOnly
+            ? {
+                marksAwarded: Number.isFinite(marksAwarded) ? marksAwarded : null,
+              }
+            : {}),
         }),
       })
       if (res.ok) {
-        setViewRow(null)
-        await load()
+        const updated = (await res.json()) as ReportDetail
+        if (options.complete) {
+          setViewRow(null)
+          await load()
+        } else if (viewRow) {
+          setViewRow({ ...viewRow, ...updated })
+          await load()
+        }
       }
     } finally {
       setBusyId(null)
     }
   }
 
+  async function markComplete(id: string) {
+    await saveReportReview(id, { complete: true })
+  }
+
   async function saveFeedbackOnly(id: string) {
-    setBusyId(id)
-    try {
-      const res = await fetch(`/api/admin/reports/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teacherFeedback: feedback.trim() || null }),
-      })
-      if (res.ok) {
-        await openView({ ...viewRow!, id } as ReportListRow)
-        await load()
-      }
-    } finally {
-      setBusyId(null)
-    }
+    await saveReportReview(id, { feedbackOnly: true })
   }
 
   const filters: { key: Filter; label: string }[] = [
@@ -296,6 +316,17 @@ export default function AdminReportsPage() {
                   {viewRow.content}
                 </p>
               </div>
+              <TeacherMarkField
+                id="report-marks"
+                label="Report marks"
+                value={marksInput}
+                max={viewRow.marksMax}
+                disabled={viewRow.reviewStatus === 'COMPLETED'}
+                onChange={setMarksInput}
+              />
+              {viewRow.gradeBreakdown ? (
+                <GradeBreakdown breakdown={viewRow.gradeBreakdown} />
+              ) : null}
               <div className="space-y-2">
                 <Label htmlFor="teacher-feedback">Feedback (optional)</Label>
                 <Textarea
@@ -312,6 +343,14 @@ export default function AdminReportsPage() {
           <DialogFooter className="gap-2 sm:gap-2">
             {viewRow && viewRow.reviewStatus !== 'COMPLETED' ? (
               <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={busyId === viewRow.id}
+                  onClick={() => void saveReportReview(viewRow.id)}
+                >
+                  Save marks
+                </Button>
                 <Button
                   type="button"
                   variant="outline"

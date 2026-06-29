@@ -87,6 +87,12 @@ model Experiment {
   createdAt        DateTime @default(now())
   subjectId        String?
   subject          Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  /// Max marks for the quiz component of the final grade.
+  gradeQuizMax           Int @default(30)
+  /// Max marks for the questionnaire component of the final grade.
+  gradeQuestionnaireMax  Int @default(35)
+  /// Max marks for the written report component of the final grade.
+  gradeReportMax         Int @default(35)
   sessions         ExperimentSession[]
   quizzes          Quiz[]
   reports          Report[]
@@ -179,6 +185,11 @@ model QuizAttempt {
   totalPoints Int
   percentage  Int
   passed      Boolean      @default(false)
+  /// Teacher-assigned marks for this attempt (counts toward experiment quiz total).
+  marksAwarded   Int?
+  marksMax       Int?
+  marksAwardedAt DateTime?
+  marksAwardedById String?
   /// Legacy JSON snapshot; prefer `quizAnswers` for new attempts.
   answers     Json?
   attemptedAt DateTime     @default(now())
@@ -230,6 +241,8 @@ model Report {
   reviewedById    String?
   teacherFeedback String?                   @db.Text
   feedbackAt      DateTime?
+  marksAwarded    Int?
+  marksMax        Int?
   sessionId       String?                   @unique
   student         User                      @relation(fields: [studentId], references: [id])
   experiment      Experiment                @relation(fields: [experimentId], references: [id], onDelete: Cascade)
@@ -270,6 +283,8 @@ model QuestionnaireSubmission {
   reviewedById    String?
   scores          Json?
   scoredAt        DateTime?
+  marksAwarded    Int?
+  marksMax        Int?
   student         User      @relation(fields: [studentId], references: [id])
   questionnaire   ExperimentQuestionnaire @relation(fields: [questionnaireId], references: [id], onDelete: Cascade)
   session         ExperimentSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)

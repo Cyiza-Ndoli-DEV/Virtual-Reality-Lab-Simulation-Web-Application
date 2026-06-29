@@ -1,5 +1,7 @@
 export type LabStatus = 'locked' | 'active' | 'completed' | 'available'
 
+export { percentToGradeLabel, letterGradeFromPercent } from '@/lib/letter-grades'
+
 export function formatDuration(seconds: number): string {
   const total = Math.max(0, Math.floor(seconds))
   const h = Math.floor(total / 3600)
@@ -7,18 +9,6 @@ export function formatDuration(seconds: number): string {
   if (h > 0) return `${h}h ${m}m`
   if (m > 0) return `${m}m`
   return '0m'
-}
-
-export function percentToGradeLabel(percent: number): string {
-  if (percent >= 93) return `A (${percent}%)`
-  if (percent >= 90) return `A- (${percent}%)`
-  if (percent >= 87) return `B+ (${percent}%)`
-  if (percent >= 83) return `B (${percent}%)`
-  if (percent >= 80) return `B- (${percent}%)`
-  if (percent >= 77) return `C+ (${percent}%)`
-  if (percent >= 73) return `C (${percent}%)`
-  if (percent >= 70) return `C- (${percent}%)`
-  return `D (${percent}%)`
 }
 
 export function subjectIconKey(code: string | null | undefined): 'chem' | 'phy' | 'bio' | 'default' {

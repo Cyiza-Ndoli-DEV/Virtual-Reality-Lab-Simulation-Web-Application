@@ -21,6 +21,16 @@ import {
 } from '@/components/ui/dialog'
 import { useAdminPageHeader } from '@/components/admin/admin-app-header-context'
 import type { QuizAttemptDetailDto, QuizAttemptListItem, QuizStatsDto } from '@/lib/quiz'
+import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
+import { GradeBreakdown } from '@/components/grading/grade-breakdown'
+import { TeacherMarkField } from '@/components/grading/teacher-mark-field'
+
+type QuizAttemptDetail = QuizAttemptDetailDto & {
+  marksAwarded: number | null
+  marksMax: number
+  suggestedMarks: number
+  gradeBreakdown: FinalGradeBreakdown | null
+}
 
 export default function AdminQuizResultsPage() {
   const params = useParams()
@@ -32,8 +42,10 @@ export default function AdminQuizResultsPage() {
   const [stats, setStats] = useState<QuizStatsDto | null>(null)
   const [attempts, setAttempts] = useState<QuizAttemptListItem[]>([])
   const [loading, setLoading] = useState(true)
-  const [detail, setDetail] = useState<QuizAttemptDetailDto | null>(null)
+  const [detail, setDetail] = useState<QuizAttemptDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [marksInput, setMarksInput] = useState('')
+  const [savingMarks, setSavingMarks] = useState(false)
 
   useAdminPageHeader('Quiz results', false)
 
@@ -62,14 +74,63 @@ export default function AdminQuizResultsPage() {
 
   async function viewAttempt(attemptId: string) {
     setDetailLoading(true)
+    setMarksInput('')
     try {
       const res = await fetch(
         `/api/admin/experiments/${experimentId}/quizzes/${quizId}/attempts/${attemptId}`
       )
       const data = await res.json().catch(() => ({}))
-      if (res.ok) setDetail(data as QuizAttemptDetailDto)
+      if (res.ok) {
+        const attempt = data as QuizAttemptDetail
+        setDetail(attempt)
+        setMarksInput(
+          attempt.marksAwarded !== null
+            ? String(attempt.marksAwarded)
+            : String(attempt.suggestedMarks)
+        )
+      }
     } finally {
       setDetailLoading(false)
+    }
+  }
+
+  async function saveQuizMarks(useSuggested = false) {
+    if (!detail) return
+    setSavingMarks(true)
+    try {
+      const marksAwarded =
+        marksInput.trim() === '' ? null : Number.parseInt(marksInput, 10)
+      const res = await fetch(
+        `/api/admin/experiments/${experimentId}/quizzes/${quizId}/attempts/${detail.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(
+            useSuggested
+              ? { useSuggestedMarks: true }
+              : { marksAwarded: Number.isFinite(marksAwarded) ? marksAwarded : null }
+          ),
+        }
+      )
+      if (res.ok) {
+        const updated = (await res.json()) as {
+          marksAwarded: number | null
+          marksMax: number
+          gradeBreakdown: FinalGradeBreakdown | null
+        }
+        setDetail({
+          ...detail,
+          marksAwarded: updated.marksAwarded,
+          marksMax: updated.marksMax,
+          gradeBreakdown: updated.gradeBreakdown,
+        })
+        setMarksInput(
+          updated.marksAwarded !== null ? String(updated.marksAwarded) : ''
+        )
+        await load()
+      }
+    } finally {
+      setSavingMarks(false)
     }
   }
 
@@ -175,7 +236,7 @@ export default function AdminQuizResultsPage() {
       )}
 
       <Dialog open={Boolean(detail)} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-h-[85vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-3xl sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {detail?.studentName ?? 'Attempt'} — {detail?.percentage}%
@@ -184,24 +245,55 @@ export default function AdminQuizResultsPage() {
           {detailLoading ? (
             <p className="text-sm text-slate-500">Loading…</p>
           ) : detail ? (
-            <ul className="space-y-3">
-              {detail.answers.map((a, i) => (
-                <li key={a.questionId} className="rounded-lg border border-slate-200 p-3 text-sm">
-                  <p className="font-medium text-slate-900">
-                    {i + 1}. {a.questionText}
-                  </p>
-                  <p className="mt-1 text-slate-600">
-                    Answer: {a.selectedOptionText ?? '—'}
-                  </p>
-                  {!a.isCorrect && a.correctOptionText && (
-                    <p className="text-slate-500">Correct: {a.correctOptionText}</p>
-                  )}
-                  <p className={a.isCorrect ? 'text-emerald-600' : 'text-red-600'}>
-                    {a.isCorrect ? 'Correct' : 'Incorrect'} · {a.points} pts
-                  </p>
-                </li>
-              ))}
-            </ul>
+            <div className="space-y-4">
+              <TeacherMarkField
+                id="quiz-marks"
+                label="Quiz marks"
+                value={marksInput}
+                max={detail.marksMax}
+                hint={`Auto score suggests ${detail.suggestedMarks}/${detail.marksMax} from ${detail.percentage}%.`}
+                onChange={setMarksInput}
+              />
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={savingMarks}
+                  onClick={() => void saveQuizMarks(true)}
+                >
+                  Use auto score
+                </Button>
+                <Button
+                  type="button"
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={savingMarks}
+                  onClick={() => void saveQuizMarks(false)}
+                >
+                  {savingMarks ? 'Saving…' : 'Save marks'}
+                </Button>
+              </div>
+              {detail.gradeBreakdown ? (
+                <GradeBreakdown breakdown={detail.gradeBreakdown} />
+              ) : null}
+              <ul className="space-y-3">
+                {detail.answers.map((a, i) => (
+                  <li key={a.questionId} className="rounded-lg border border-slate-200 p-3 text-sm">
+                    <p className="font-medium text-slate-900">
+                      {i + 1}. {a.questionText}
+                    </p>
+                    <p className="mt-1 text-slate-600">
+                      Answer: {a.selectedOptionText ?? '—'}
+                    </p>
+                    {!a.isCorrect && a.correctOptionText && (
+                      <p className="text-slate-500">Correct: {a.correctOptionText}</p>
+                    )}
+                    <p className={a.isCorrect ? 'text-emerald-600' : 'text-red-600'}>
+                      {a.isCorrect ? 'Correct' : 'Incorrect'} · {a.points} pts
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ) : null}
         </DialogContent>
       </Dialog>
