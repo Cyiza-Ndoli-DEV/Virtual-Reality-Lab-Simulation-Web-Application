@@ -250,7 +250,7 @@ export default function AdminReportsPage() {
       </div>
 
       <Dialog open={Boolean(viewRow) || viewLoading} onOpenChange={(o) => !o && setViewRow(null)}>
-        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogContent className="max-h-[90vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto sm:max-w-4xl sm:p-6">
           <DialogHeader>
             <DialogTitle>
               {viewLoading
