@@ -60,7 +60,7 @@ function workflowFromReview(status: 'PENDING' | 'COMPLETED'): LabWorkflowStatus 
 export default function AdminReportsPage() {
   useAdminPageHeader('Lab reports', true)
 
-  const [filter, setFilter] = useState<Filter>('PENDING')
+  const [filter, setFilter] = useState<Filter>('ALL')
   const [rows, setRows] = useState<ReportListRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -145,9 +145,9 @@ export default function AdminReportsPage() {
   }
 
   const filters: { key: Filter; label: string }[] = [
+    { key: 'ALL', label: 'All' },
     { key: 'PENDING', label: 'Pending review' },
     { key: 'COMPLETED', label: 'Completed' },
-    { key: 'ALL', label: 'All' },
   ]
 
   return (

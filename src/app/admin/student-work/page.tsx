@@ -53,7 +53,7 @@ function workflowFromReview(status: 'PENDING' | 'COMPLETED'): LabWorkflowStatus 
 export default function AdminStudentWorkPage() {
   useAdminPageHeader('Student work', true)
 
-  const [filter, setFilter] = useState<Filter>('PENDING')
+  const [filter, setFilter] = useState<Filter>('ALL')
   const [rows, setRows] = useState<SubmissionListRow[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -114,9 +114,9 @@ export default function AdminStudentWorkPage() {
   }
 
   const filters: { key: Filter; label: string }[] = [
+    { key: 'ALL', label: 'All' },
     { key: 'PENDING', label: 'Pending review' },
     { key: 'COMPLETED', label: 'Completed' },
-    { key: 'ALL', label: 'All' },
   ]
 
   const pendingCount = filter === 'PENDING' ? total : 0
