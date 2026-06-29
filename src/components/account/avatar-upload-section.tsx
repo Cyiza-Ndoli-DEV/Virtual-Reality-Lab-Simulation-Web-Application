@@ -126,7 +126,8 @@ export function AvatarUploadSection({
           </Button>
         </div>
         <p className="text-xs text-slate-500">
-          We support PNGs, JPEGs, GIFs, and WebP files under 10MB.
+          We support PNGs, JPEGs, GIFs, and WebP files under 10MB. On production without
+          cloud storage, keep images under 500KB.
         </p>
       </div>
     </section>

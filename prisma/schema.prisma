@@ -55,8 +55,8 @@ model User {
   /// Educators are assigned to one subject catalog entry.
   subjectId   String?
   subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-  /// Public URL path e.g. /uploads/avatars/{id}.jpg
-  avatarUrl   String?
+  /// Public URL path e.g. /uploads/avatars/{id}.jpg or Vercel Blob URL
+  avatarUrl   String?  @db.LongText
   passwordResetTokens      PasswordResetToken[]
   sessions                 ExperimentSession[]
   quizAttempts             QuizAttempt[]

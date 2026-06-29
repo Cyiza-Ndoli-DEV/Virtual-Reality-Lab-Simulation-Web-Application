@@ -6,7 +6,11 @@ import {
   extensionForMime,
   isAllowedAvatarMime,
 } from '@/lib/user-avatar'
-import { removeAvatar, uploadAvatar } from '@/lib/user-avatar-storage'
+import {
+  INLINE_AVATAR_MAX_BYTES,
+  uploadAvatar,
+  removeAvatar,
+} from '@/lib/user-avatar-storage'
 
 export const runtime = 'nodejs'
 
@@ -21,6 +25,24 @@ async function requireSignedInUser() {
   return { ok: true as const, userId: session.user.id }
 }
 
+function avatarUploadErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message.includes('BlobStoreNotFound') || message.includes('No token found')) {
+    return 'Profile photos need Vercel Blob storage. In the Vercel dashboard: Storage → Create Blob → connect to this project, then redeploy.'
+  }
+
+  if (message.includes('not configured for files this large')) {
+    return `Image is too large for temporary storage. Use an image under ${Math.round(INLINE_AVATAR_MAX_BYTES / 1024)}KB, or connect Vercel Blob for larger uploads.`
+  }
+
+  if (message.includes('EROFS') || message.includes('read-only')) {
+    return 'File storage is not available on this server. Connect Vercel Blob storage and redeploy.'
+  }
+
+  return 'Could not upload image. Try a smaller file (under 500KB) or connect Vercel Blob in your Vercel project settings.'
+}
+
 export async function POST(req: NextRequest) {
   try {
     const access = await requireSignedInUser()
@@ -32,14 +54,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Image file is required' }, { status: 400 })
     }
 
-    if (!isAllowedAvatarMime(file.type)) {
+    const mime = file.type || inferMimeFromName(file.name)
+    if (!isAllowedAvatarMime(mime)) {
       return NextResponse.json(
         { error: 'Only PNG, JPEG, GIF, and WebP images are supported' },
         { status: 400 }
       )
     }
 
-    const ext = extensionForMime(file.type)
+    const ext = extensionForMime(mime)
     if (!ext) {
       return NextResponse.json({ error: 'Unsupported image type' }, { status: 400 })
     }
@@ -56,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     await removeAvatar(access.userId, existing?.avatarUrl)
 
-    const avatarUrl = await uploadAvatar(access.userId, ext, buffer, file.type)
+    const avatarUrl = await uploadAvatar(access.userId, ext, buffer, mime)
 
     await prisma.user.update({
       where: { id: access.userId },
@@ -66,11 +89,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ avatarUrl })
   } catch (e) {
     console.error('[POST /api/account/avatar]', e)
-    const message =
-      process.env.BLOB_READ_WRITE_TOKEN
-        ? 'Could not upload image'
-        : 'Avatar upload is not configured for this environment. Add Vercel Blob storage (BLOB_READ_WRITE_TOKEN).'
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json(
+      { error: avatarUploadErrorMessage(e) },
+      { status: 500 }
+    )
   }
 }
 
@@ -96,4 +118,13 @@ export async function DELETE() {
     console.error('[DELETE /api/account/avatar]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
+}
+
+function inferMimeFromName(name: string): string {
+  const lower = name.toLowerCase()
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  if (lower.endsWith('.gif')) return 'image/gif'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  return ''
 }
