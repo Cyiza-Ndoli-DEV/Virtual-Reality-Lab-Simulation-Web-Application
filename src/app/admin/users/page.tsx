@@ -584,7 +584,6 @@ export default function AdminUsersPage() {
                 setInviteName('')
                 setInviteEmail('')
                 setInviteUsername('')
-                setInvitePassword('')
                 setInviteSubjectId('')
                 setInviteRole(
                   (userRoleOptions.find((o) => o.code === 'STUDENT') ?? userRoleOptions[0])
