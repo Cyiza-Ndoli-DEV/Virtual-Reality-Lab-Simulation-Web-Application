@@ -140,6 +140,7 @@ export async function GET(
       hasQuestionnaire: hasReportAssignment,
       submittedAt: reportSubmittedAtIso,
       reviewStatus: reportRow?.reviewStatus ?? null,
+      requireReviewForComplete: true,
     })
 
     const submittedAtIso = submission?.submittedAt.toISOString() ?? null
@@ -147,6 +148,7 @@ export async function GET(
       hasQuestionnaire,
       submittedAt: submittedAtIso,
       reviewStatus: submission?.reviewStatus ?? null,
+      requireReviewForComplete: false,
     })
 
     const quizSummaries = experiment.quizzes

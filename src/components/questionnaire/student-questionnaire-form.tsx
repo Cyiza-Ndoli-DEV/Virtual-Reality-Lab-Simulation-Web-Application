@@ -284,7 +284,7 @@ export function StudentQuestionnaireForm({
       <header className="border-b border-slate-200 pb-4">
         <h1 className="app-page-title">{config.title}</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Complete all sections below after finishing the VR lab practical.
+          Read the scenario and plan your experiment before you enter the VR lab.
         </p>
       </header>
 

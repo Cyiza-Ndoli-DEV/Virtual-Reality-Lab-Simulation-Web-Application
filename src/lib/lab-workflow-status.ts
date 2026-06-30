@@ -1,4 +1,4 @@
-/** Questionnaire workflow on the student lab (not VR session status). */
+/** Questionnaire workflow on the student lab (pre-VR preparation). */
 
 export type LabWorkflowStatus = 'todo' | 'pending' | 'completed' | 'unset'
 
@@ -8,9 +8,12 @@ export function deriveLabWorkflowStatus(input: {
   hasQuestionnaire: boolean
   submittedAt: string | null
   reviewStatus: QuestionnaireReviewStatus | null
+  /** When false, a submission counts as completed (e.g. ungraded pre-lab prep). */
+  requireReviewForComplete?: boolean
 }): LabWorkflowStatus {
   if (!input.hasQuestionnaire) return 'unset'
   if (!input.submittedAt) return 'todo'
+  if (input.requireReviewForComplete === false) return 'completed'
   if (input.reviewStatus === 'COMPLETED') return 'completed'
   return 'pending'
 }

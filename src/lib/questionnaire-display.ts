@@ -54,22 +54,26 @@ export function deriveLabProgress(input: {
   quizzesCompleted?: boolean
   hasFinalGrade: boolean
 }): LabProgress {
-  const virtualPractical: ProgressStepState = input.vrActive
-    ? 'active'
-    : input.vrCompleted
-      ? 'completed'
-      : 'pending'
+  const vrUnlocked = !input.hasQuestionnaire || input.questionnaireSubmitted
 
   let questionnaire: ProgressStepState | null = null
   if (input.hasQuestionnaire) {
-    questionnaire = 'pending'
-    if (input.questionnaireReviewed) {
+    if (input.questionnaireReviewed || input.questionnaireSubmitted) {
       questionnaire = 'completed'
-    } else if (input.questionnaireSubmitted) {
-      questionnaire = 'active'
-    } else if (input.vrCompleted) {
+    } else {
       questionnaire = 'active'
     }
+  }
+
+  let virtualPractical: ProgressStepState
+  if (!vrUnlocked) {
+    virtualPractical = 'pending'
+  } else if (input.vrActive) {
+    virtualPractical = 'active'
+  } else if (input.vrCompleted) {
+    virtualPractical = 'completed'
+  } else {
+    virtualPractical = 'active'
   }
 
   let writtenReport: ProgressStepState | null = null
@@ -86,7 +90,6 @@ export function deriveLabProgress(input: {
 
   const postLabRequirementsMet =
     input.vrCompleted &&
-    (!input.hasQuestionnaire || Boolean(input.questionnaireReviewed)) &&
     (!input.hasReportAssignment || Boolean(input.reportReviewed)) &&
     (!input.hasQuizzes || Boolean(input.quizzesCompleted))
 

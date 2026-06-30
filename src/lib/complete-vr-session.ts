@@ -1,4 +1,5 @@
 import prisma from '@/lib/prisma'
+import { hasCompletedPreVrQuestionnaire } from '@/lib/pre-vr-questionnaire'
 
 /** Mark the student's VR lab as finished (web self-report or close an open session). */
 export async function completeVirtualPracticalForStudent(
@@ -16,6 +17,16 @@ export async function completeVirtualPracticalForStudent(
 
   if (experiment.subject?.status === 'INACTIVE') {
     return { ok: false as const, status: 403, error: 'This lab is not available' }
+  }
+
+  const preVrReady = await hasCompletedPreVrQuestionnaire(studentId, experimentId)
+  if (!preVrReady) {
+    return {
+      ok: false as const,
+      status: 400,
+      error:
+        'Complete the pre-lab briefing on the web portal before starting or marking the virtual practical.',
+    }
   }
 
   const sessions = await prisma.experimentSession.findMany({

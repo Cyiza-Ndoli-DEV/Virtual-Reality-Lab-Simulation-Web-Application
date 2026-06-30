@@ -22,10 +22,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import type { QuestionnaireAnswers, QuestionnaireConfig } from '@/lib/questionnaire'
-import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
+import {
+  deriveLabWorkflowStatus,
+  type LabWorkflowStatus,
+} from '@/lib/lab-workflow-status'
 import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
 import { GradeBreakdown } from '@/components/grading/grade-breakdown'
-import { TeacherMarkField } from '@/components/grading/teacher-mark-field'
 import { cn } from '@/lib/utils'
 
 type Filter = 'PENDING' | 'COMPLETED' | 'ALL'
@@ -47,13 +49,16 @@ interface SubmissionListRow {
 interface SubmissionDetail extends SubmissionListRow {
   answers: QuestionnaireAnswers
   config: QuestionnaireConfig | null
-  marksAwarded: number | null
-  marksMax: number
   gradeBreakdown: FinalGradeBreakdown | null
 }
 
 function workflowFromReview(status: 'PENDING' | 'COMPLETED'): LabWorkflowStatus {
-  return status === 'COMPLETED' ? 'completed' : 'pending'
+  return deriveLabWorkflowStatus({
+    hasQuestionnaire: true,
+    submittedAt: new Date().toISOString(),
+    reviewStatus: status,
+    requireReviewForComplete: true,
+  })
 }
 
 export default function AdminStudentWorkPage() {
@@ -66,7 +71,6 @@ export default function AdminStudentWorkPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [viewRow, setViewRow] = useState<SubmissionDetail | null>(null)
   const [viewLoading, setViewLoading] = useState(false)
-  const [marksInput, setMarksInput] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -93,64 +97,37 @@ export default function AdminStudentWorkPage() {
   async function openView(row: SubmissionListRow) {
     setViewLoading(true)
     setViewRow(null)
-    setMarksInput('')
     try {
       const res = await fetch(`/api/admin/student-work/${row.id}`)
       if (res.ok) {
-        const detail = (await res.json()) as SubmissionDetail
-        setViewRow(detail)
-        setMarksInput(
-          detail.marksAwarded !== null ? String(detail.marksAwarded) : ''
-        )
+        setViewRow((await res.json()) as SubmissionDetail)
       }
     } finally {
       setViewLoading(false)
     }
   }
 
-  async function saveSubmissionReview(
-    id: string,
-    options: { complete?: boolean } = {}
-  ) {
+  async function markAcknowledged(id: string) {
     setBusyId(id)
     try {
-      const marksAwarded =
-        marksInput.trim() === '' ? null : Number.parseInt(marksInput, 10)
       const res = await fetch(`/api/admin/student-work/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(options.complete ? { reviewStatus: 'COMPLETED' } : {}),
-          marksAwarded: Number.isFinite(marksAwarded) ? marksAwarded : null,
-        }),
+        body: JSON.stringify({ reviewStatus: 'COMPLETED' }),
       })
       if (res.ok) {
-        const updated = (await res.json()) as SubmissionDetail
-        if (options.complete) {
-          setViewRow(null)
-          await load()
-        } else if (viewRow) {
-          setViewRow({
-            ...viewRow,
-            marksAwarded: updated.marksAwarded,
-            marksMax: updated.marksMax ?? viewRow.marksMax,
-            gradeBreakdown: updated.gradeBreakdown,
-          })
-        }
+        setViewRow(null)
+        await load()
       }
     } finally {
       setBusyId(null)
     }
   }
 
-  async function markComplete(id: string) {
-    await saveSubmissionReview(id, { complete: true })
-  }
-
   const filters: { key: Filter; label: string }[] = [
     { key: 'ALL', label: 'All' },
-    { key: 'PENDING', label: 'Pending review' },
-    { key: 'COMPLETED', label: 'Completed' },
+    { key: 'PENDING', label: 'Not yet viewed' },
+    { key: 'COMPLETED', label: 'Acknowledged' },
   ]
 
   const pendingCount = filter === 'PENDING' ? total : 0
@@ -159,8 +136,8 @@ export default function AdminStudentWorkPage() {
     <div>
       <div className="mb-6">
         <p className="max-w-2xl text-sm text-slate-500">
-          Receive and review post-lab questionnaires from students. Mark work as completed
-          when marking is finished so students see their lab status update.
+          View student pre-lab briefing submissions (scenario, materials, and task). These
+          are not graded and students do not write anything — read-only context before VR.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           {filters.map((f) => (
@@ -205,7 +182,7 @@ export default function AdminStudentWorkPage() {
               <TableRow>
                 <TableCell colSpan={5} className="py-10 text-center text-slate-500">
                   {filter === 'PENDING'
-                    ? 'No submissions awaiting review.'
+                    ? 'No submissions awaiting acknowledgement.'
                     : 'No submissions in this view.'}
                 </TableCell>
               </TableRow>
@@ -251,9 +228,9 @@ export default function AdminStudentWorkPage() {
                           size="sm"
                           className="rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
                           disabled={busyId === r.id}
-                          onClick={() => void markComplete(r.id)}
+                          onClick={() => void markAcknowledged(r.id)}
                         >
-                          {busyId === r.id ? 'Saving…' : 'Mark completed'}
+                          {busyId === r.id ? 'Saving…' : 'Acknowledge'}
                         </Button>
                       ) : null}
                     </div>
@@ -267,7 +244,7 @@ export default function AdminStudentWorkPage() {
 
       {filter === 'PENDING' && pendingCount > 0 ? (
         <p className="mt-3 text-sm text-amber-700">
-          {pendingCount} submission{pendingCount === 1 ? '' : 's'} waiting for your review.
+          {pendingCount} submission{pendingCount === 1 ? '' : 's'} not yet acknowledged.
         </p>
       ) : null}
 
@@ -289,22 +266,21 @@ export default function AdminStudentWorkPage() {
             <p className="text-sm text-slate-500">Loading…</p>
           ) : viewRow?.config ? (
             <div className="space-y-4">
+              <p className="text-sm text-slate-500">
+                Pre-lab briefing (not graded). Read-only context the student viewed before VR.
+              </p>
               <QuestionnaireReviewCard
                 config={viewRow.config}
                 answers={viewRow.answers}
                 workflowStatus={workflowFromReview(viewRow.reviewStatus)}
                 showFooter={false}
-              />
-              <TeacherMarkField
-                id="questionnaire-marks"
-                label="Questionnaire marks"
-                value={marksInput}
-                max={viewRow.marksMax}
-                disabled={viewRow.reviewStatus === 'COMPLETED'}
-                onChange={setMarksInput}
+                contextOnly
               />
               {viewRow.gradeBreakdown ? (
-                <GradeBreakdown breakdown={viewRow.gradeBreakdown} />
+                <GradeBreakdown
+                  breakdown={viewRow.gradeBreakdown}
+                  title="Student grade progress (quiz & report)"
+                />
               ) : null}
             </div>
           ) : viewRow ? (
@@ -315,24 +291,14 @@ export default function AdminStudentWorkPage() {
               Close
             </Button>
             {viewRow && viewRow.reviewStatus !== 'COMPLETED' ? (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={busyId === viewRow.id}
-                  onClick={() => void saveSubmissionReview(viewRow.id)}
-                >
-                  Save marks
-                </Button>
-                <Button
-                  type="button"
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
-                  disabled={busyId === viewRow.id}
-                  onClick={() => void markComplete(viewRow.id)}
-                >
-                  Mark completed
-                </Button>
-              </>
+              <Button
+                type="button"
+                className="bg-emerald-600 text-white hover:bg-emerald-700"
+                disabled={busyId === viewRow.id}
+                onClick={() => void markAcknowledged(viewRow.id)}
+              >
+                Acknowledge
+              </Button>
             ) : null}
           </DialogFooter>
         </DialogContent>
