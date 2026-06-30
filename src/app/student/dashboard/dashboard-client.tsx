@@ -17,19 +17,20 @@ const statusOrder: Record<LabStatus, number> = {
 
 const WORKFLOW_STEPS = [
   {
-    icon: Headset,
-    title: 'Complete the VR practical',
-    description: 'Sign in on the headset and finish the experiment in the virtual lab.',
+    icon: ClipboardList,
+    title: 'Complete the pre-lab briefing',
+    description:
+      'Read the scenario, materials, and task on the web portal before VR — no writing required.',
   },
   {
-    icon: ClipboardList,
-    title: 'Submit the questionnaire',
-    description: 'Return here and complete the post-lab questions for that experiment.',
+    icon: Headset,
+    title: 'Complete the VR practical',
+    description: 'Sign in on the headset and perform the experiment in the virtual lab.',
   },
   {
     icon: FileText,
     title: 'Submit your written report',
-    description: 'Add your lab write-up when the report task is available.',
+    description: 'Add your lab write-up and take any quizzes after the VR session.',
   },
 ] as const
 

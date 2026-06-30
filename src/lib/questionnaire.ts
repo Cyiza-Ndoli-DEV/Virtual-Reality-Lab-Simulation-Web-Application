@@ -1,4 +1,4 @@
-/** Post-experiment questionnaire section definitions (stored as JSON on ExperimentQuestionnaire). */
+/** Pre-lab and follow-up questionnaire section definitions (stored as JSON on ExperimentQuestionnaire). */
 
 export type GradingCriterion = {
   code: string
@@ -106,7 +106,7 @@ export function emptyQuestionnaireConfig(): QuestionnaireConfig {
 /** Filled example for “Load sample template” (diffusion / David scenario). */
 export function sampleQuestionnaireConfig(): QuestionnaireConfig {
   return {
-    title: 'Post-practical questionnaire',
+    title: 'Pre-lab preparation',
     sections: [
       {
         id: newId(),
@@ -276,6 +276,20 @@ export function parseQuestionnaireConfig(raw: unknown): QuestionnaireConfig | nu
   if (sections.length === 0) return null
   sections.sort((a, b) => a.sortOrder - b.sortOrder)
   return { title, sections }
+}
+
+export const PRE_LAB_ACK_KEY = '_preLabAcknowledged'
+
+/** Stored when a student acknowledges the read-only pre-lab briefing (no written answers). */
+export function preLabAcknowledgementAnswers(): QuestionnaireAnswers {
+  return { [PRE_LAB_ACK_KEY]: { text: 'acknowledged' } }
+}
+
+export function isPreLabAcknowledgementOnly(answers: unknown): boolean {
+  if (!answers || typeof answers !== 'object') return true
+  const raw = answers as Record<string, unknown>
+  if (PRE_LAB_ACK_KEY in raw) return true
+  return Object.keys(raw).length === 0
 }
 
 export function validateAnswers(

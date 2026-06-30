@@ -136,16 +136,20 @@ function ExperimentDetailContent({
     reportWorkflowStatus,
     labProgress,
   } = data
-  const submitted = questionnaire?.submitted ?? false
+  const questionnaireSubmitted = questionnaire?.submitted ?? false
   const reportSubmitted = report?.submitted ?? false
   const answers = (questionnaire?.answers ?? {}) as QuestionnaireAnswers
-  const teacherCompleted = questionnaire?.reviewStatus === 'COMPLETED'
-  const reportTeacherCompleted = report?.reviewStatus === 'COMPLETED'
   const vrCompleted = labProgress.virtualPractical === 'completed'
+  const vrActive = status === 'active'
+  const preVrRequired = data.hasQuestionnaire
+  const vrLocked = preVrRequired && !questionnaireSubmitted
   const vrMarkProps = {
     experimentId: experiment.id,
     vrCompleted,
     onCompleted: onLabUpdated,
+    disabled: vrLocked,
+    disabledHint:
+      'Complete the pre-lab briefing below before starting or marking the virtual practical.',
   }
 
   const quizCards = data.hasQuizzes ? (
@@ -189,125 +193,41 @@ function ExperimentDetailContent({
     )
   }
 
-  if (reportSubmitted && report && !submitted) {
-    return (
-      <>
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <LabWorkflowStatusBadge status={reportWorkflowStatus} />
+  return (
+    <>
+      {preVrRequired && !questionnaireSubmitted ? (
+        <>
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-blue-950">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
+            <div>
+              <p className="app-card-title">Step 1 — Pre-lab briefing</p>
+              <p className="app-body mt-1 text-blue-900">
+                Read the scenario, materials, and task before you enter the VR lab. Nothing
+                to write — just review the briefing.
+              </p>
+            </div>
+          </div>
+          <div className="mb-4">
+            <LabWorkflowStatusBadge status={workflowStatus} />
+          </div>
+          <PendingQuestionnaireCta experimentId={experiment.id} />
+        </>
+      ) : null}
+
+      {preVrRequired && questionnaireSubmitted && !vrCompleted ? (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="app-card-title">Briefing complete</p>
+            <p className="app-body mt-1 text-emerald-800">
+              You have read the pre-lab briefing. You can now start the virtual practical on
+              the headset.
+            </p>
+          </div>
         </div>
-        {reportTeacherCompleted ? (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-            <div>
-              <p className="app-card-title">Lab report reviewed</p>
-              <p className="app-body mt-1 text-emerald-800">
-                Your teacher has reviewed your written report.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-            <div>
-              <p className="app-card-title">Report awaiting review</p>
-              <p className="app-body mt-1 text-amber-800">
-                Your lab report was submitted and is pending teacher review.
-              </p>
-            </div>
-          </div>
-        )}
-        <SubmittedReportCard report={report} experimentId={experiment.id} />
-        {quizCards ? <PostLabGrid>{quizCards}</PostLabGrid> : null}
-        <VrPerformanceBanner
-          session={vrSession}
-          onReview={() => setVrLogOpen(true)}
-        />
-        <VrLogDialog
-          open={vrLogOpen}
-          onOpenChange={setVrLogOpen}
-          session={vrSession}
-          experimentTitle={experiment.title}
-        />
-      </>
-    )
-  }
+      ) : null}
 
-  if (submitted && questionnaire) {
-    return (
-      <>
-        <div className="mb-4 flex flex-wrap items-center gap-3">
-          <LabWorkflowStatusBadge status={workflowStatus} />
-          {reportSubmitted ? (
-            <LabWorkflowStatusBadge status={reportWorkflowStatus} />
-          ) : null}
-        </div>
-
-        {teacherCompleted ? (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
-            <div>
-              <p className="app-card-title">Lab marked complete</p>
-              <p className="app-body mt-1 text-emerald-800">
-                Your teacher has reviewed and completed this lab. Your questionnaire is
-                locked below.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-            <div>
-              <p className="app-card-title">Awaiting teacher review</p>
-              <p className="app-body mt-1 text-amber-800">
-                Your questionnaire was submitted and is pending. You can review your
-                answers below while your teacher marks the lab complete.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {gradePanel}
-
-        <QuestionnaireReviewCard
-          config={questionnaire.config}
-          answers={answers}
-          workflowStatus={workflowStatus}
-          experimentId={data.experiment.id}
-        />
-
-        {reportSubmitted && report ? (
-          <div className="mt-6">
-            <SubmittedReportCard report={report} experimentId={experiment.id} />
-          </div>
-        ) : null}
-
-        {report && !reportSubmitted && vrCompleted ? (
-          <PostLabGrid>
-            <PendingReportCta experimentId={experiment.id} />
-            {quizCards}
-          </PostLabGrid>
-        ) : (
-          quizCards ? <PostLabGrid>{quizCards}</PostLabGrid> : null
-        )}
-
-        <VrPerformanceBanner
-          session={vrSession}
-          onReview={() => setVrLogOpen(true)}
-        />
-
-        <VrLogDialog
-          open={vrLogOpen}
-          onOpenChange={setVrLogOpen}
-          session={vrSession}
-          experimentTitle={experiment.title}
-        />
-      </>
-    )
-  }
-
-  if (status === 'active') {
-    return (
-      <>
+      {vrActive ? (
         <div className="mb-6 rounded-2xl border-2 border-blue-200 bg-blue-50/50 p-6">
           <div className="flex items-start gap-4">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white">
@@ -329,149 +249,134 @@ function ExperimentDetailContent({
             </div>
           </div>
         </div>
-
-        <PostLabGrid>
-          {questionnaire ? (
-            <PendingQuestionnaireCta
-              experimentId={data.experiment.id}
-              disabled={!vrCompleted}
-            />
-          ) : null}
-          {report && !reportSubmitted ? (
-            <PendingReportCta
-              experimentId={data.experiment.id}
-              disabled={!vrCompleted}
-            />
-          ) : null}
-          {quizCards}
-        </PostLabGrid>
-      </>
-    )
-  }
-
-  if (
-    status === 'completed' &&
-    report &&
-    !reportSubmitted &&
-    (!questionnaire || submitted)
-  ) {
-    return (
-      <>
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="app-body text-amber-950">
-            You have finished the virtual practical. Write your lab report while your
-            observations are still fresh.
-          </p>
-        </div>
-        <div className="mb-4">
-          <LabWorkflowStatusBadge status={reportWorkflowStatus} />
-        </div>
-        <PostLabGrid>
-          <PendingReportCta experimentId={data.experiment.id} />
-          {quizCards}
-        </PostLabGrid>
-        <VrPerformanceBanner
-          session={vrSession}
-          onReview={() => setVrLogOpen(true)}
-        />
-        <VrLogDialog
-          open={vrLogOpen}
-          onOpenChange={setVrLogOpen}
-          session={vrSession}
-          experimentTitle={experiment.title}
-        />
-      </>
-    )
-  }
-
-  if (
-    status === 'completed' &&
-    questionnaire &&
-    !submitted
-  ) {
-    return (
-      <>
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-950">
-          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-          <p className="app-body text-amber-950">
-            You have finished the virtual practical. Complete the post-lab questionnaire
-            below while your observations are still fresh.
-          </p>
-        </div>
-        <div className="mb-4">
-          <LabWorkflowStatusBadge status={workflowStatus} />
-        </div>
-        <PostLabGrid>
-          <PendingQuestionnaireCta experimentId={data.experiment.id} />
-          {report && !reportSubmitted ? (
-            <PendingReportCta experimentId={data.experiment.id} />
-          ) : null}
-          {quizCards}
-        </PostLabGrid>
-        <VrPerformanceBanner
-          session={vrSession}
-          onReview={() => setVrLogOpen(true)}
-        />
-        <VrLogDialog
-          open={vrLogOpen}
-          onOpenChange={setVrLogOpen}
-          session={vrSession}
-          experimentTitle={experiment.title}
-        />
-      </>
-    )
-  }
-
-  return (
-    <>
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-            <Headset className="h-6 w-6" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="app-card-title">Start in the VR lab app</p>
-            <p className="app-body mt-2 text-slate-600">
-              {experiment.description}
-            </p>
-            <p className="app-body-muted mt-4">
-              Open the <strong>VRSPS VR application</strong> on your headset or lab PC to run
-              this practical. When you are done, mark it complete here, then fill in the
-              questionnaire.
-            </p>
-            <div className="mt-5 border-t border-slate-100 pt-5">
-              <MarkVrCompleteButton {...vrMarkProps} />
+      ) : !vrCompleted ? (
+        <div
+          className={
+            vrLocked
+              ? 'rounded-2xl border border-slate-200 bg-slate-50 p-6 opacity-90'
+              : 'rounded-2xl border border-slate-200 bg-white p-6 shadow-sm'
+          }
+        >
+          <div className="flex items-start gap-4">
+            <div
+              className={
+                vrLocked
+                  ? 'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400'
+                  : 'flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600'
+              }
+            >
+              {vrLocked ? <Lock className="h-6 w-6" /> : <Headset className="h-6 w-6" />}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="app-card-title">
+                {preVrRequired ? 'Step 2 — Virtual practical' : 'Start in the VR lab app'}
+              </p>
+              <p className="app-body mt-2 text-slate-600">{experiment.description}</p>
+              <p className="app-body-muted mt-4">
+                {vrLocked ? (
+                  <>
+                    Complete the <strong>pre-lab briefing</strong> above first, then open
+                    the <strong>VRSPS VR application</strong> on your headset or lab PC.
+                  </>
+                ) : (
+                  <>
+                    Open the <strong>VRSPS VR application</strong> on your headset or lab PC to
+                    run this practical. When you are done, mark it complete here.
+                  </>
+                )}
+              </p>
+              <div className="mt-5 border-t border-slate-100 pt-5">
+                <MarkVrCompleteButton {...vrMarkProps} />
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <LabWorkflowStatusBadge status={workflowStatus} />
-      </div>
-
-      {!data.hasQuestionnaire && !data.hasReportAssignment ? (
-        <p className="app-body-muted mt-4">
-          Post-lab work (questionnaire or written report) has not been set up for this
-          experiment yet.
-        </p>
       ) : null}
-      <PostLabGrid>
-        {data.hasQuestionnaire ? (
-          <PendingQuestionnaireCta
-            experimentId={data.experiment.id}
-            disabled={!vrCompleted}
+
+      {vrCompleted ? (
+        <>
+          <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-900">
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
+            <p className="app-body text-emerald-950">
+              You have finished the virtual practical. Complete any remaining graded tasks
+              below (quiz and written report).
+            </p>
+          </div>
+
+          {gradePanel}
+
+          {questionnaireSubmitted && questionnaire ? (
+            <QuestionnaireReviewCard
+              config={questionnaire.config}
+              answers={answers}
+              workflowStatus={workflowStatus}
+              experimentId={data.experiment.id}
+              contextOnly
+            />
+          ) : null}
+
+          {reportSubmitted && report ? (
+            <div className="mt-6">
+              <SubmittedReportCard report={report} experimentId={experiment.id} />
+            </div>
+          ) : null}
+
+          {reportSubmitted ? (
+            <div className="mb-4 mt-6">
+              <LabWorkflowStatusBadge status={reportWorkflowStatus} />
+            </div>
+          ) : null}
+
+          <PostLabGrid>
+            {report && !reportSubmitted ? (
+              <PendingReportCta experimentId={experiment.id} />
+            ) : null}
+            {quizCards}
+          </PostLabGrid>
+
+          <VrPerformanceBanner
+            session={vrSession}
+            onReview={() => setVrLogOpen(true)}
           />
-        ) : null}
-        {data.hasReportAssignment && !reportSubmitted ? (
-          <PendingReportCta
-            experimentId={data.experiment.id}
-            disabled={!vrCompleted}
-          />
-        ) : null}
-        {quizCards}
-      </PostLabGrid>
+        </>
+      ) : (
+        <>
+          {questionnaireSubmitted && questionnaire && !vrCompleted ? (
+            <div className="mt-6">
+              <QuestionnaireReviewCard
+                config={questionnaire.config}
+                answers={answers}
+                workflowStatus={workflowStatus}
+                experimentId={data.experiment.id}
+                contextOnly
+              />
+            </div>
+          ) : null}
+
+          {!questionnaireSubmitted && !data.hasQuestionnaire && !data.hasReportAssignment ? (
+            <p className="app-body-muted mt-4">
+              Follow-up work (written report or quizzes) will appear here after you complete
+              the virtual practical.
+            </p>
+          ) : null}
+
+          {!vrCompleted ? (
+            <PostLabGrid>
+              {report && !reportSubmitted ? (
+                <PendingReportCta experimentId={experiment.id} disabled />
+              ) : null}
+              {quizCards}
+            </PostLabGrid>
+          ) : null}
+        </>
+      )}
+
+      <VrLogDialog
+        open={vrLogOpen}
+        onOpenChange={setVrLogOpen}
+        session={vrSession}
+        experimentTitle={experiment.title}
+      />
     </>
   )
 }
@@ -545,11 +450,11 @@ function PendingQuestionnaireCta({
 }) {
   return (
     <div className="flex h-full w-full flex-col rounded-2xl border border-slate-200 bg-white p-6">
-      <p className="app-card-title">Post-lab questionnaire</p>
+      <p className="app-card-title">Pre-lab briefing</p>
       <p className="app-body-muted mt-1.5">
         {disabled
-          ? 'Available after you complete the virtual practical in VR.'
-          : 'Record your design, results, and analysis for this practical.'}
+          ? 'Complete the virtual practical in VR first.'
+          : 'Read the scenario and task before entering VR — no writing required.'}
       </p>
       <Button
         asChild={!disabled}
@@ -557,10 +462,10 @@ function PendingQuestionnaireCta({
         disabled={disabled}
       >
         {disabled ? (
-          <span>Complete questionnaire</span>
+          <span>View pre-lab briefing</span>
         ) : (
           <Link href={`/student/experiments/${experimentId}/questionnaire`}>
-            Complete questionnaire
+            View pre-lab briefing
           </Link>
         )}
       </Button>

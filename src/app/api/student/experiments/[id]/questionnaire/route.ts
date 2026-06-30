@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
-import { parseQuestionnaireConfig, validateAnswers } from '@/lib/questionnaire'
+import { parseQuestionnaireConfig, preLabAcknowledgementAnswers } from '@/lib/questionnaire'
 
 export async function GET(
   _req: NextRequest,
@@ -115,28 +115,7 @@ export async function POST(
       )
     }
 
-    const vrCompleted = await prisma.experimentSession.findFirst({
-      where: {
-        studentId,
-        experimentId,
-        completedAt: { not: null },
-      },
-      select: { id: true },
-    })
-    if (!vrCompleted) {
-      return NextResponse.json(
-        {
-          error:
-            'Mark the virtual practical complete on the lab page before submitting the questionnaire.',
-        },
-        { status: 400 }
-      )
-    }
-
-    const validated = validateAnswers(config, body.answers)
-    if (!validated.ok) {
-      return NextResponse.json({ error: validated.error }, { status: 400 })
-    }
+    const validated = preLabAcknowledgementAnswers()
 
     const sessionId =
       typeof body.sessionId === 'string' && body.sessionId.trim()
@@ -157,7 +136,7 @@ export async function POST(
         studentId,
         questionnaireId: questionnaire.id,
         sessionId: sessionId ?? null,
-        answers: validated.data,
+        answers: validated,
       },
     })
 

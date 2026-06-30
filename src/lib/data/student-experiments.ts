@@ -108,6 +108,7 @@ export async function getStudentExperiments(
       hasQuestionnaire,
       submittedAt,
       reviewStatus: sub?.reviewStatus ?? null,
+      requireReviewForComplete: false,
     })
 
     const expSessions = sessionsByExperiment.get(e.id) ?? []

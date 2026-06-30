@@ -176,7 +176,7 @@ async function main() {
         sections: sampleQuestionnaire.sections,
       },
     })
-    console.log('Sample post-practical questionnaire linked to Acid-Base Titration.')
+    console.log('Sample pre-lab questionnaire linked to Acid-Base Titration.')
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2021') {
       console.warn(

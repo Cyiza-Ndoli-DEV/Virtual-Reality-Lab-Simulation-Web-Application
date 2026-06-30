@@ -1,10 +1,9 @@
 import prisma from '@/lib/prisma'
 
 export const DEFAULT_GRADE_QUIZ_MAX = 30
-export const DEFAULT_GRADE_QUESTIONNAIRE_MAX = 35
-export const DEFAULT_GRADE_REPORT_MAX = 35
+export const DEFAULT_GRADE_REPORT_MAX = 70
 
-export type GradeComponentKey = 'quiz' | 'questionnaire' | 'report'
+export type GradeComponentKey = 'quiz' | 'report'
 
 export type GradeComponent = {
   key: GradeComponentKey
@@ -25,19 +24,15 @@ export type FinalGradeBreakdown = {
 
 export type ExperimentGradeLimits = {
   gradeQuizMax: number
-  gradeQuestionnaireMax: number
   gradeReportMax: number
 }
 
 export function experimentGradeLimits(experiment: {
   gradeQuizMax?: number | null
-  gradeQuestionnaireMax?: number | null
   gradeReportMax?: number | null
 }): ExperimentGradeLimits {
   return {
     gradeQuizMax: experiment.gradeQuizMax ?? DEFAULT_GRADE_QUIZ_MAX,
-    gradeQuestionnaireMax:
-      experiment.gradeQuestionnaireMax ?? DEFAULT_GRADE_QUESTIONNAIRE_MAX,
     gradeReportMax: experiment.gradeReportMax ?? DEFAULT_GRADE_REPORT_MAX,
   }
 }
@@ -70,13 +65,10 @@ export function quizMarksMaxPerAttempt(
 
 export function computeFinalGrade(input: {
   hasQuiz: boolean
-  hasQuestionnaire: boolean
   hasReport: boolean
   limits: ExperimentGradeLimits
   quizAwarded: number | null
   quizGraded: boolean
-  questionnaireAwarded: number | null
-  questionnaireGraded: boolean
   reportAwarded: number | null
   reportGraded: boolean
 }): FinalGradeBreakdown {
@@ -89,16 +81,6 @@ export function computeFinalGrade(input: {
       awarded: input.quizGraded ? input.quizAwarded : null,
       max: input.limits.gradeQuizMax,
       graded: input.quizGraded,
-    })
-  }
-
-  if (input.hasQuestionnaire) {
-    components.push({
-      key: 'questionnaire',
-      label: 'Questionnaire',
-      awarded: input.questionnaireGraded ? input.questionnaireAwarded : null,
-      max: input.limits.gradeQuestionnaireMax,
-      graded: input.questionnaireGraded,
     })
   }
 
@@ -146,9 +128,7 @@ export async function loadStudentExperimentGradeBreakdown(
     where: { id: experimentId },
     select: {
       gradeQuizMax: true,
-      gradeQuestionnaireMax: true,
       gradeReportMax: true,
-      questionnaire: { select: { id: true } },
       reportAssignment: { select: { id: true } },
       quizzes: {
         where: { isPublished: true },
@@ -167,7 +147,6 @@ export async function loadStudentExperimentGradeBreakdown(
 
   const limits = experimentGradeLimits(experiment)
   const hasQuiz = experiment.quizzes.length > 0
-  const hasQuestionnaire = Boolean(experiment.questionnaire)
   const hasReport = Boolean(experiment.reportAssignment)
 
   const quizAttempts = experiment.quizzes.flatMap((quiz) => quiz.attempts)
@@ -186,22 +165,6 @@ export async function loadStudentExperimentGradeBreakdown(
       ? gradedQuizAttempts.reduce((sum, attempt) => sum + (attempt.marksAwarded ?? 0), 0)
       : null
 
-  let questionnaireAwarded: number | null = null
-  let questionnaireGraded = false
-  if (hasQuestionnaire && experiment.questionnaire) {
-    const submission = await prisma.questionnaireSubmission.findUnique({
-      where: {
-        studentId_questionnaireId: {
-          studentId,
-          questionnaireId: experiment.questionnaire.id,
-        },
-      },
-      select: { marksAwarded: true },
-    })
-    questionnaireGraded = submission?.marksAwarded !== null
-    questionnaireAwarded = submission?.marksAwarded ?? null
-  }
-
   let reportAwarded: number | null = null
   let reportGraded = false
   if (hasReport) {
@@ -215,13 +178,10 @@ export async function loadStudentExperimentGradeBreakdown(
 
   return computeFinalGrade({
     hasQuiz,
-    hasQuestionnaire,
     hasReport,
     limits,
     quizAwarded,
     quizGraded,
-    questionnaireAwarded,
-    questionnaireGraded,
     reportAwarded,
     reportGraded,
   })

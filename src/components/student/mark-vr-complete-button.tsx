@@ -10,11 +10,15 @@ export function MarkVrCompleteButton({
   vrCompleted,
   onCompleted,
   className,
+  disabled = false,
+  disabledHint,
 }: {
   experimentId: string
   vrCompleted: boolean
   onCompleted?: () => void
   className?: string
+  disabled?: boolean
+  disabledHint?: string
 }) {
   const refreshLab = useExperimentLabRefresh()
   const [busy, setBusy] = useState(false)
@@ -59,14 +63,15 @@ export function MarkVrCompleteButton({
       <Button
         type="button"
         className="rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
-        disabled={busy}
+        disabled={busy || disabled}
         onClick={() => void handleComplete()}
       >
         {busy ? 'Saving…' : 'Mark virtual practical complete'}
       </Button>
       <p className="mt-2 text-xs text-slate-500">
-        Use this after you finish the lab in VR, or if you completed it outside the
-        headset app.
+        {disabled && disabledHint
+          ? disabledHint
+          : 'Use this after you finish the lab in VR, or if you completed it outside the headset app.'}
       </p>
       {error ? <p className="mt-2 text-sm text-red-600">{error}</p> : null}
     </div>

@@ -11,17 +11,21 @@ export function buildLabTimelineSteps(
   progress: LabProgress,
   quizState: ProgressStepState | null
 ): LabTimelineStep[] {
-  const steps: LabTimelineStep[] = [
-    { key: 'virtualPractical', label: 'Virtual Practical', state: progress.virtualPractical },
-  ]
+  const steps: LabTimelineStep[] = []
 
   if (progress.questionnaire !== null) {
     steps.push({
       key: 'questionnaire',
-      label: 'Questionnaire',
+      label: 'Pre-lab briefing',
       state: progress.questionnaire,
     })
   }
+
+  steps.push({
+    key: 'virtualPractical',
+    label: 'Virtual Practical',
+    state: progress.virtualPractical,
+  })
 
   if (progress.writtenReport !== null) {
     steps.push({
