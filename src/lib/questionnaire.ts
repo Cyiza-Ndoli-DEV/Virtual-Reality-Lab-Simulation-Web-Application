@@ -1,3 +1,6 @@
+/** Student-facing title for the read-only pre-VR briefing page. */
+export const PRE_LAB_BRIEFING_TITLE = 'Pre-brief'
+
 /** Pre-lab and follow-up questionnaire section definitions (stored as JSON on ExperimentQuestionnaire). */
 
 export type GradingCriterion = {
@@ -106,7 +109,7 @@ export function emptyQuestionnaireConfig(): QuestionnaireConfig {
 /** Filled example for “Load sample template” (diffusion / David scenario). */
 export function sampleQuestionnaireConfig(): QuestionnaireConfig {
   return {
-    title: 'Pre-lab preparation',
+    title: PRE_LAB_BRIEFING_TITLE,
     sections: [
       {
         id: newId(),

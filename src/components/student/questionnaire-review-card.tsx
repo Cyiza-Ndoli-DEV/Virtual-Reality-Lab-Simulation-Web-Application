@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { LabWorkflowStatusBadge } from '@/components/student/lab-workflow-status-badge'
 import type { QuestionnaireAnswers, QuestionnaireConfig } from '@/lib/questionnaire'
-import { isPreLabAcknowledgementOnly } from '@/lib/questionnaire'
+import { isPreLabAcknowledgementOnly, PRE_LAB_BRIEFING_TITLE } from '@/lib/questionnaire'
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
 import {
   answerTextForSection,
@@ -62,7 +62,7 @@ export function QuestionnaireReviewCard({
     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-100 px-6 py-4">
         <p className="app-card-title">
-          {contextOnly ? config.title : questionnaireItemLabel(itemIndex)}
+          {contextOnly ? PRE_LAB_BRIEFING_TITLE : questionnaireItemLabel(itemIndex)}
         </p>
         <p className="app-body-muted mt-1">
           {contextOnly

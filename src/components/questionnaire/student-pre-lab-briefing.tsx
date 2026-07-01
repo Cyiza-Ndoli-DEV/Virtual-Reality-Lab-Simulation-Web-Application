@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import type { DesignSection, QuestionnaireConfig } from '@/lib/questionnaire'
+import {
+  PRE_LAB_BRIEFING_TITLE,
+  type DesignSection,
+  type QuestionnaireConfig,
+} from '@/lib/questionnaire'
 
 type Props = {
   config: QuestionnaireConfig
@@ -70,7 +74,7 @@ export function StudentPreLabBriefing({ config, onContinue }: Props) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="border-b border-slate-200 pb-4">
-        <h1 className="app-page-title">{config.title}</h1>
+        <h1 className="app-page-title">{PRE_LAB_BRIEFING_TITLE}</h1>
         <p className="mt-1 text-sm text-slate-500">
           Read the scenario, materials, and task below. You will perform this experiment in
           the VR lab — nothing to write here.
