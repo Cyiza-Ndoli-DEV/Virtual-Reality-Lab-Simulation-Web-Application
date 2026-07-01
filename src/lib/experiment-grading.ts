@@ -63,6 +63,22 @@ export function quizMarksMaxPerAttempt(
   return Math.max(1, Math.round(experimentQuizMax / publishedQuizCount))
 }
 
+/** Marks for a quiz attempt — uses stored value or derives from percentage. */
+export function resolveQuizAttemptMarks(input: {
+  percentage: number
+  marksAwarded: number | null
+  marksMax: number | null
+  experimentQuizMax: number
+  publishedQuizCount: number
+}): { marksAwarded: number; marksMax: number } {
+  const marksMax =
+    input.marksMax ??
+    quizMarksMaxPerAttempt(input.experimentQuizMax, input.publishedQuizCount)
+  const marksAwarded =
+    input.marksAwarded ?? marksFromQuizPercentage(input.percentage, marksMax)
+  return { marksAwarded, marksMax }
+}
+
 export function computeFinalGrade(input: {
   hasQuiz: boolean
   hasReport: boolean
@@ -77,7 +93,7 @@ export function computeFinalGrade(input: {
   if (input.hasQuiz) {
     components.push({
       key: 'quiz',
-      label: 'Quiz',
+      label: 'Quiz (auto-scored)',
       awarded: input.quizGraded ? input.quizAwarded : null,
       max: input.limits.gradeQuizMax,
       graded: input.quizGraded,
@@ -136,7 +152,13 @@ export async function loadStudentExperimentGradeBreakdown(
           id: true,
           attempts: {
             where: { studentId },
-            select: { marksAwarded: true, marksMax: true },
+            orderBy: { attemptedAt: 'desc' },
+            take: 1,
+            select: {
+              marksAwarded: true,
+              marksMax: true,
+              percentage: true,
+            },
           },
         },
       },
@@ -148,22 +170,42 @@ export async function loadStudentExperimentGradeBreakdown(
   const limits = experimentGradeLimits(experiment)
   const hasQuiz = experiment.quizzes.length > 0
   const hasReport = Boolean(experiment.reportAssignment)
+  const publishedQuizCount = experiment.quizzes.length
 
-  const quizAttempts = experiment.quizzes.flatMap((quiz) => quiz.attempts)
-  const quizzesWithAttempts = experiment.quizzes.filter((quiz) => quiz.attempts.length > 0)
-  const gradedQuizAttempts = quizAttempts.filter(
-    (attempt) => attempt.marksAwarded !== null
-  )
-  const quizGraded =
-    quizzesWithAttempts.length > 0 &&
-    quizzesWithAttempts.every((quiz) =>
-      quiz.attempts.some((attempt) => attempt.marksAwarded !== null)
-    )
-  const quizAwarded = quizGraded
-    ? gradedQuizAttempts.reduce((sum, attempt) => sum + (attempt.marksAwarded ?? 0), 0)
-    : gradedQuizAttempts.length > 0
-      ? gradedQuizAttempts.reduce((sum, attempt) => sum + (attempt.marksAwarded ?? 0), 0)
-      : null
+  let quizAwarded: number | null = null
+  let quizGraded = false
+  if (hasQuiz) {
+    const latestAttempts = experiment.quizzes
+      .map((quiz) => quiz.attempts[0])
+      .filter((attempt): attempt is NonNullable<typeof attempt> => Boolean(attempt))
+
+    quizGraded =
+      latestAttempts.length === publishedQuizCount && publishedQuizCount > 0
+
+    if (quizGraded) {
+      quizAwarded = latestAttempts.reduce((sum, attempt) => {
+        const { marksAwarded } = resolveQuizAttemptMarks({
+          percentage: attempt.percentage,
+          marksAwarded: attempt.marksAwarded,
+          marksMax: attempt.marksMax,
+          experimentQuizMax: limits.gradeQuizMax,
+          publishedQuizCount,
+        })
+        return sum + marksAwarded
+      }, 0)
+    } else if (latestAttempts.length > 0) {
+      quizAwarded = latestAttempts.reduce((sum, attempt) => {
+        const { marksAwarded } = resolveQuizAttemptMarks({
+          percentage: attempt.percentage,
+          marksAwarded: attempt.marksAwarded,
+          marksMax: attempt.marksMax,
+          experimentQuizMax: limits.gradeQuizMax,
+          publishedQuizCount,
+        })
+        return sum + marksAwarded
+      }, 0)
+    }
+  }
 
   let reportAwarded: number | null = null
   let reportGraded = false

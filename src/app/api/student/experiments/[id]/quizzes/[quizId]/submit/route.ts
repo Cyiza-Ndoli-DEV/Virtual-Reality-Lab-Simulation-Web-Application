@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import {
+  experimentGradeLimits,
+  marksFromQuizPercentage,
+  quizMarksMaxPerAttempt,
+} from '@/lib/experiment-grading'
 import { quizFullInclude } from '@/lib/quiz'
 
 type SubmitBody = {
@@ -78,6 +83,18 @@ export async function POST(
       totalPoints > 0 ? Math.round((score / totalPoints) * 100) : 0
     const passed = percentage >= quiz.passMark
 
+    const experiment = await prisma.experiment.findUnique({
+      where: { id: experimentId },
+      select: {
+        gradeQuizMax: true,
+        quizzes: { where: { isPublished: true }, select: { id: true } },
+      },
+    })
+    const limits = experimentGradeLimits(experiment ?? {})
+    const publishedCount = experiment?.quizzes.length ?? 1
+    const marksMax = quizMarksMaxPerAttempt(limits.gradeQuizMax, publishedCount)
+    const marksAwarded = marksFromQuizPercentage(percentage, marksMax)
+
     const attempt = await prisma.quizAttempt.create({
       data: {
         studentId,
@@ -86,6 +103,9 @@ export async function POST(
         totalPoints,
         percentage,
         passed,
+        marksAwarded,
+        marksMax,
+        marksAwardedAt: new Date(),
         answers: body.answers,
         quizAnswers: {
           create: answerRows.map((row) => ({
@@ -101,6 +121,8 @@ export async function POST(
         totalPoints: true,
         percentage: true,
         passed: true,
+        marksAwarded: true,
+        marksMax: true,
         attemptedAt: true,
       },
     })
@@ -111,6 +133,8 @@ export async function POST(
         attemptedAt: attempt.attemptedAt.toISOString(),
       },
       passMark: quiz.passMark,
+      marksAwarded,
+      marksMax,
     })
   } catch (e) {
     console.error('[POST .../quizzes/:quizId/submit]', e)

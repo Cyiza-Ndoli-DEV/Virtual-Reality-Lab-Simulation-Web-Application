@@ -23,7 +23,7 @@ import { useAdminPageHeader } from '@/components/admin/admin-app-header-context'
 import type { QuizAttemptDetailDto, QuizAttemptListItem, QuizStatsDto } from '@/lib/quiz'
 import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
 import { GradeBreakdown } from '@/components/grading/grade-breakdown'
-import { TeacherMarkField } from '@/components/grading/teacher-mark-field'
+import { letterGradeFromPercent } from '@/lib/letter-grades'
 
 type QuizAttemptDetail = QuizAttemptDetailDto & {
   marksAwarded: number | null
@@ -44,8 +44,6 @@ export default function AdminQuizResultsPage() {
   const [loading, setLoading] = useState(true)
   const [detail, setDetail] = useState<QuizAttemptDetail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const [marksInput, setMarksInput] = useState('')
-  const [savingMarks, setSavingMarks] = useState(false)
 
   useAdminPageHeader('Quiz results', false)
 
@@ -74,63 +72,16 @@ export default function AdminQuizResultsPage() {
 
   async function viewAttempt(attemptId: string) {
     setDetailLoading(true)
-    setMarksInput('')
     try {
       const res = await fetch(
         `/api/admin/experiments/${experimentId}/quizzes/${quizId}/attempts/${attemptId}`
       )
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        const attempt = data as QuizAttemptDetail
-        setDetail(attempt)
-        setMarksInput(
-          attempt.marksAwarded !== null
-            ? String(attempt.marksAwarded)
-            : String(attempt.suggestedMarks)
-        )
+        setDetail(data as QuizAttemptDetail)
       }
     } finally {
       setDetailLoading(false)
-    }
-  }
-
-  async function saveQuizMarks(useSuggested = false) {
-    if (!detail) return
-    setSavingMarks(true)
-    try {
-      const marksAwarded =
-        marksInput.trim() === '' ? null : Number.parseInt(marksInput, 10)
-      const res = await fetch(
-        `/api/admin/experiments/${experimentId}/quizzes/${quizId}/attempts/${detail.id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(
-            useSuggested
-              ? { useSuggestedMarks: true }
-              : { marksAwarded: Number.isFinite(marksAwarded) ? marksAwarded : null }
-          ),
-        }
-      )
-      if (res.ok) {
-        const updated = (await res.json()) as {
-          marksAwarded: number | null
-          marksMax: number
-          gradeBreakdown: FinalGradeBreakdown | null
-        }
-        setDetail({
-          ...detail,
-          marksAwarded: updated.marksAwarded,
-          marksMax: updated.marksMax,
-          gradeBreakdown: updated.gradeBreakdown,
-        })
-        setMarksInput(
-          updated.marksAwarded !== null ? String(updated.marksAwarded) : ''
-        )
-        await load()
-      }
-    } finally {
-      setSavingMarks(false)
     }
   }
 
@@ -246,34 +197,28 @@ export default function AdminQuizResultsPage() {
             <p className="text-sm text-slate-500">Loading…</p>
           ) : detail ? (
             <div className="space-y-4">
-              <TeacherMarkField
-                id="quiz-marks"
-                label="Quiz marks"
-                value={marksInput}
-                max={detail.marksMax}
-                hint={`Auto score suggests ${detail.suggestedMarks}/${detail.marksMax} from ${detail.percentage}%.`}
-                onChange={setMarksInput}
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={savingMarks}
-                  onClick={() => void saveQuizMarks(true)}
-                >
-                  Use auto score
-                </Button>
-                <Button
-                  type="button"
-                  className="bg-blue-600 hover:bg-blue-700"
-                  disabled={savingMarks}
-                  onClick={() => void saveQuizMarks(false)}
-                >
-                  {savingMarks ? 'Saving…' : 'Save marks'}
-                </Button>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                <p className="font-medium text-slate-800">Quiz marks (auto-scored)</p>
+                <p className="mt-1 text-slate-600">
+                  {detail.suggestedMarks} / {detail.marksMax} from {detail.percentage}%
+                  score
+                  {detail.marksAwarded !== null ? (
+                    <span className="text-slate-500"> · recorded at submission</span>
+                  ) : null}
+                </p>
               </div>
               {detail.gradeBreakdown ? (
-                <GradeBreakdown breakdown={detail.gradeBreakdown} />
+                <GradeBreakdown
+                  breakdown={detail.gradeBreakdown}
+                  title={
+                    detail.gradeBreakdown.isComplete
+                      ? `Final grade: ${
+                          letterGradeFromPercent(detail.gradeBreakdown.percentage ?? 0)
+                            ?.letter ?? '—'
+                        }`
+                      : 'Grade progress (awaiting report marks)'
+                  }
+                />
               ) : null}
               <ul className="space-y-3">
                 {detail.answers.map((a, i) => (

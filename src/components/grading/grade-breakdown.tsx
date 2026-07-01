@@ -79,8 +79,8 @@ export function GradeBreakdown({
 
       {!breakdown.isComplete ? (
         <p className="app-caption mt-3 text-slate-500">
-          Final mark is calculated when all graded components (quiz and written report) have
-          marks assigned.
+          Quiz marks are scored automatically. Allocate report marks to calculate the
+          final grade.
         </p>
       ) : null}
     </section>

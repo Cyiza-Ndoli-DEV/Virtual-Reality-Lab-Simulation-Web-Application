@@ -25,6 +25,7 @@ import {
 import type { LabWorkflowStatus } from '@/lib/lab-workflow-status'
 import type { FinalGradeBreakdown } from '@/lib/experiment-grading'
 import { GradeBreakdown } from '@/components/grading/grade-breakdown'
+import { letterGradeFromPercent } from '@/lib/letter-grades'
 import { TeacherMarkField } from '@/components/grading/teacher-mark-field'
 import { cn } from '@/lib/utils'
 
@@ -148,6 +149,9 @@ export default function AdminReportsPage() {
           await load()
         } else if (viewRow) {
           setViewRow({ ...viewRow, ...updated })
+          setMarksInput(
+            updated.marksAwarded !== null ? String(updated.marksAwarded) : ''
+          )
           await load()
         }
       }
@@ -325,7 +329,17 @@ export default function AdminReportsPage() {
                 onChange={setMarksInput}
               />
               {viewRow.gradeBreakdown ? (
-                <GradeBreakdown breakdown={viewRow.gradeBreakdown} />
+                <GradeBreakdown
+                  breakdown={viewRow.gradeBreakdown}
+                  title={
+                    viewRow.gradeBreakdown.isComplete
+                      ? `Final grade: ${
+                          letterGradeFromPercent(viewRow.gradeBreakdown.percentage ?? 0)
+                            ?.letter ?? '—'
+                        } (${viewRow.gradeBreakdown.percentage}%)`
+                      : 'Grade progress'
+                  }
+                />
               ) : null}
               <div className="space-y-2">
                 <Label htmlFor="teacher-feedback">Feedback (optional)</Label>
